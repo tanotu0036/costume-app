@@ -404,11 +404,15 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-size:14px;overfl
 
       <div class="field">
         <div class="field-label"><i class="ti ti-photo"></i>写真（後から追加も可）</div>
-        <div style="background:var(--bg3);border:1px dashed var(--br2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;color:var(--tx3)" onclick="showToast('実際のアプリでは写真選択が開きます')">
-          <i class="ti ti-cloud-upload" style="font-size:28px;display:block;margin-bottom:6px"></i>
-          <div style="font-size:12px">タップして写真を選択</div>
-          <div style="font-size:10px;margin-top:3px">メイン写真 + 別アングルを追加できます</div>
+        <div id="add-photo-preview" style="display:none;margin-bottom:6px">
+          <img id="add-photo-img" style="width:100%;border-radius:var(--r);object-fit:cover;max-height:160px">
         </div>
+        <div style="background:var(--bg3);border:1px dashed var(--br2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;color:var(--tx3)" onclick="selectAddPhoto()">
+          <i class="ti ti-cloud-upload" style="font-size:28px;display:block;margin-bottom:6px"></i>
+          <div style="font-size:12px" id="add-photo-label">タップして写真を選択</div>
+          <div style="font-size:10px;margin-top:3px">登録後にも追加できます</div>
+        </div>
+        <input type="file" id="add-photo-input" accept="image/*" style="display:none" onchange="previewAddPhoto(this)">
       </div>
 
     </div>
@@ -963,7 +967,98 @@ function renderCostumeDetail() {
   document.getElementById('conflict-area').innerHTML = '';
 }
 
-function openAddAngle() { showToast('写真追加機能は実装予定です') }
+function openAddAngle() {
+  // ファイル選択ダイアログを開く
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const isMain = (State.currentCostume['写真']||[]).length === 0;
+    await uploadPhoto(file, isMain ? 'メイン' : 'アングル', isMain ? '' : 'アングル' + ((State.currentCostume['写真']||[]).length));
+  };
+  input.click();
+}
+
+async function uploadPhoto(file, 種別, アングル名) {
+  showToast('写真をアップロード中...');
+  try {
+    const base64 = await fileToBase64(file);
+    const 順番 = (State.currentCostume['写真']||[]).length + 1;
+    const result = await gasRequestUpload('uploadPhoto', {
+      costumeId : State.currentCostume['id'],
+      衣装ID    : State.currentCostume['衣装ID'],
+      base64    : base64,
+      mimeType  : file.type,
+      fileName  : file.name,
+      種別      : 種別,
+      アングル名 : アングル名,
+      順番      : 順番,
+    });
+    showToast('写真を保存しました');
+    // 衣装詳細を再読み込み
+    State.currentCostume = await CostumeAPI.get(State.currentCostume['id']);
+    renderCostumeDetail();
+  } catch(e) {
+    showToast('アップロード失敗: ' + e.message);
+  }
+}
+
+// 画像をリサイズ・圧縮してBase64で返す（最大1280px・品質0.75）
+function fileToBase64(file, maxSize=1280, quality=0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // リサイズが不要なら圧縮のみ
+        let w = img.width;
+        let h = img.height;
+        if(w > maxSize || h > maxSize) {
+          if(w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else      { w = Math.round(w * maxSize / h); h = maxSize; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        // jpeg変換してBase64取得
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// 写真アップロード専用（Base64をGETパラメーターに入れるとURL長制限に引っかかるため
+// JSONボディのPOSTで送るが、GASはPOSTのCORSを処理できないので
+// multipart/form-dataの代わりにチャンク分割なしで直接URLパラメーターに入れる
+// → Base64が長いためURLエンコード後にPOSTで送る方式に変更
+async function gasRequestUpload(action, params) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  // base64以外のパラメーターをURLに追加
+  Object.entries(params).forEach(([k, v]) => {
+    if(k !== 'base64') url.searchParams.set(k, v);
+  });
+  // base64はフォームデータで送る（GASのdoPostで受け取る）
+  const formData = new FormData();
+  formData.append('base64', params.base64);
+
+  // GASはCORSでPOSTを弾くため、Base64をURLパラメーターに分割して送る
+  // 代替案：Base64を複数チャンクに分けてGETで送る
+  // 実用的な解決策：Base64全体をURLパラメーターに追加（GASのURL長制限は約2000文字）
+  // 大きい画像はリサイズして対応
+  url.searchParams.set('base64', params.base64);
+  const res  = await fetch(url.toString(), { method: 'GET' });
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error || 'APIエラー');
+  return data.data;
+}
 function openLinkFromCostume() {
   // 衣装詳細から演目リストを表示して紐づける
   openModal('modal-link-rep');
@@ -985,6 +1080,22 @@ function initCostumeAdd() {
   document.getElementById('add-memo').value = '';
   document.querySelectorAll('#cat-chips .chip').forEach(c=>c.classList.remove('on'));
   document.querySelectorAll('#status-chips .chip').forEach((c,i)=>c.classList.toggle('on',i===0));
+}
+
+function selectAddPhoto() {
+  document.getElementById('add-photo-input').click();
+}
+
+function previewAddPhoto(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('add-photo-img').src = e.target.result;
+    document.getElementById('add-photo-preview').style.display = 'block';
+    document.getElementById('add-photo-label').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
 }
 
 function selectCat(el, cat, code) {
@@ -1024,6 +1135,23 @@ async function submitCostume() {
     const result = await CostumeAPI.add(body);
     btn.innerHTML = '<i class="ti ti-circle-check"></i> 登録完了！';
     btn.style.background = 'var(--gr2)';
+    // 写真が選択されていればアップロード
+    const photoInput = document.getElementById('add-photo-input');
+    if(photoInput.files[0]) {
+      try {
+        const base64 = await fileToBase64(photoInput.files[0]);
+        await gasRequestUpload('uploadPhoto', {
+          costumeId : result['id'] || '',
+          衣装ID    : result['衣装ID'],
+          base64    : base64,
+          mimeType  : photoInput.files[0].type,
+          fileName  : photoInput.files[0].name,
+          種別      : 'メイン',
+          アングル名 : '',
+          順番      : 1,
+        });
+      } catch(pe) { console.warn('写真アップロード失敗:', pe); }
+    }
     showToast(`${result['衣装ID']} を登録しました`);
     await loadCostumes();
     setTimeout(() => goBack(), 800);
