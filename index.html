@@ -446,12 +446,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-size:14px;overfl
     <div style="flex:1;overflow-y:auto">
       <div style="padding:12px 14px;border-bottom:0.5px solid var(--br);background:var(--bg2)" id="rep-detail-hdr"></div>
 
-      <div style="display:flex;gap:6px;padding:10px 12px;border-bottom:0.5px solid var(--br);background:var(--bg2);flex-shrink:0">
-        <button class="btn-primary" style="height:36px;font-size:12px" onclick="openLinkMulti()">
-          <i class="ti ti-layout-grid-add" style="font-size:13px"></i>複数選択で追加
-        </button>
-        <button class="btn-sub" style="flex:0 0 auto;padding:0 12px;height:36px;font-size:12px" onclick="openLinkSingle()">
-          <i class="ti ti-zoom-in" style="font-size:13px"></i>詳細確認して追加
+      <div style="padding:8px 12px;border-bottom:0.5px solid var(--br);background:var(--bg2);flex-shrink:0">
+        <button class="btn-primary" style="height:36px;font-size:12px;width:100%" onclick="openLinkMulti()">
+          <i class="ti ti-plus" style="font-size:13px"></i>衣装を紐づける
         </button>
       </div>
 
@@ -604,6 +601,40 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-size:14px;overfl
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal('modal-link-multi')">キャンセル</button>
         <button class="btn-ok" onclick="submitLink()"><i class="ti ti-link"></i><span id="link-btn-label">紐づける</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル：演目リスト（衣装詳細から演目に紐づける） -->
+  <div class="modal-overlay hidden" id="modal-link-rep">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span class="modal-title">演目を選んで紐づける</span>
+        <button class="modal-close" onclick="closeModal('modal-link-rep')"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" style="padding-top:8px">
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <select id="rep-link-year" onchange="renderRepLinkList()" style="flex:1;height:32px;font-size:12px;border:0.5px solid var(--br2);border-radius:var(--r-sm);font-family:inherit;background:var(--bg3)">
+            <option value="">全年度</option>
+          </select>
+          <select id="rep-link-garden" onchange="renderRepLinkList()" style="flex:1;height:32px;font-size:12px;border:0.5px solid var(--br2);border-radius:var(--r-sm);font-family:inherit;background:var(--bg3)">
+            <option value="">全園</option>
+            <option>西新</option><option>原</option><option>たの津</option><option>ちくし野</option>
+          </select>
+        </div>
+        <div class="costume-select-list" id="rep-link-list" style="max-height:240px"></div>
+        <div class="sel-bar" style="border-radius:0 0 var(--r-sm) var(--r-sm)">
+          <span id="rep-link-sel-count">0件選択中</span>
+          <span style="font-size:10px;opacity:.8">タップで選択</span>
+        </div>
+        <div class="field" style="margin-top:10px;margin-bottom:0">
+          <div class="field-label"><i class="ti ti-note"></i>この衣装の使い方メモ</div>
+          <textarea id="rep-link-memo" placeholder="役柄・使用色・注意事項など" style="height:64px"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('modal-link-rep')">キャンセル</button>
+        <button class="btn-ok" onclick="submitRepLink()"><i class="ti ti-link"></i><span id="rep-link-btn-label">紐づける</span></button>
       </div>
     </div>
   </div>
@@ -934,8 +965,9 @@ function renderCostumeDetail() {
 
 function openAddAngle() { showToast('写真追加機能は実装予定です') }
 function openLinkFromCostume() {
-  State.currentRepertoire = null;
-  openLinkMulti();
+  // 衣装詳細から演目リストを表示して紐づける
+  openModal('modal-link-rep');
+  renderRepLinkList('', '');
 }
 
 // ============================================================
@@ -976,7 +1008,9 @@ function selectStatus(el, status) {
 async function submitCostume() {
   if(!State.selectedCat) { showToast('カテゴリーを選択してください'); return; }
   if(!document.getElementById('add-storage').value) { showToast('保管場所を選択してください'); return; }
-
+  const btn = document.querySelector('#page-costume-add .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 登録中...';
   const body = {
     カテゴリー : State.selectedCat,
     衣装名     : document.getElementById('add-name').value,
@@ -988,10 +1022,15 @@ async function submitCostume() {
   };
   try {
     const result = await CostumeAPI.add(body);
+    btn.innerHTML = '<i class="ti ti-circle-check"></i> 登録完了！';
+    btn.style.background = 'var(--gr2)';
     showToast(`${result['衣装ID']} を登録しました`);
     await loadCostumes();
-    goBack();
+    setTimeout(() => goBack(), 800);
   } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> 登録する';
+    btn.style.background = '';
     showToast('登録に失敗しました: '+e.message);
   }
 }
@@ -1175,7 +1214,9 @@ function toggleGarden(el, name) {
 async function submitRepertoire() {
   if(!document.getElementById('rep-name').value) { showToast('演目名を入力してください'); return; }
   if(!State.selectedGardens.length) { showToast('実施園を選択してください'); return; }
-
+  const btn = document.querySelector('#page-rep-add .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 登録中...';
   const body = {
     演目名 : document.getElementById('rep-name').value,
     種別   : State.selectedRepType,
@@ -1186,10 +1227,15 @@ async function submitRepertoire() {
   };
   try {
     await RepertoireAPI.add(body);
+    btn.innerHTML = '<i class="ti ti-circle-check"></i> 登録完了！';
+    btn.style.background = 'var(--gr2)';
     showToast('演目を登録しました');
     await loadRepertoires();
-    goBack();
+    setTimeout(() => goBack(), 800);
   } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> 登録する';
+    btn.style.background = '';
     showToast('登録に失敗しました: '+e.message);
   }
 }
@@ -1268,6 +1314,84 @@ async function deleteUsage(id) {
   }
 }
 
+
+// ============================================================
+//  衣装詳細 → 演目リストで紐づけ
+// ============================================================
+function renderRepLinkList() {
+  const yearSel   = document.getElementById('rep-link-year');
+  const gardenSel = document.getElementById('rep-link-garden');
+  const yearVal   = yearSel ? yearSel.value : '';
+  const gardenVal = gardenSel ? gardenSel.value : '';
+
+  if(yearSel && yearSel.options.length <= 1) {
+    const years = [...new Set(State.repertoires.map(r=>r['年度']))].sort((a,b)=>b-a);
+    years.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = y + '年度';
+      yearSel.appendChild(opt);
+    });
+  }
+
+  let list = State.repertoires;
+  if(yearVal)   list = list.filter(r=>String(r['年度'])===String(yearVal));
+  if(gardenVal) list = list.filter(r=>(r['園']||'').includes(gardenVal));
+
+  const container = document.getElementById('rep-link-list');
+  container.innerHTML = list.length ? list.map(r => {
+    const gc = r['園']==='西新'?'badge-nishi':r['園']==='原'?'badge-hara':r['園']==='たの津'?'badge-tano':'badge-chiku';
+    return `
+      <div class="cs-item" onclick="toggleRepLinkItem(this)" data-id="${r['id']}">
+        <div class="cs-check"><i class="ti ti-check"></i></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;display:flex;gap:4px;align-items:center">
+            <span class="badge ${gc}">${r['園']||''}</span>
+            <span style="color:var(--tx3)">${r['年度']||''}年度</span>
+          </div>
+          <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${r['演目名']||''}</div>
+          <div style="font-size:10px;color:var(--tx2)">${r['クラス']||''}</div>
+        </div>
+      </div>`;
+  }).join('') : '<div style="padding:16px;text-align:center;font-size:12px;color:var(--tx3)">演目がありません</div>';
+
+  updateRepLinkCount();
+}
+
+function toggleRepLinkItem(el) {
+  el.classList.toggle('checked');
+  updateRepLinkCount();
+}
+
+function updateRepLinkCount() {
+  const n = document.querySelectorAll('#rep-link-list .cs-item.checked').length;
+  document.getElementById('rep-link-sel-count').textContent = n + '件選択中';
+  document.getElementById('rep-link-btn-label').textContent = n > 0 ? n + '件を紐づける' : '紐づける';
+}
+
+async function submitRepLink() {
+  const checked   = document.querySelectorAll('#rep-link-list .cs-item.checked');
+  const memo      = document.getElementById('rep-link-memo').value;
+  const costumeId = State.currentCostume?.['id'];
+  if(!checked.length) { showToast('演目を選択してください'); return; }
+  const btn = document.querySelector('#modal-link-rep .btn-ok');
+  btn.disabled = true;
+  try {
+    for(const el of checked) {
+      const repId = el.getAttribute('data-id');
+      await UsageAPI.add({ 演目id: repId, 衣装id: costumeId||'', メモ: memo });
+    }
+    showToast(checked.length + '件を紐づけました');
+    closeModal('modal-link-rep');
+    try {
+      State.currentCostume = await CostumeAPI.get(costumeId);
+      renderCostumeDetail();
+    } catch(e2) {}
+  } catch(e) {
+    showToast('紐づけに失敗しました');
+  } finally {
+    btn.disabled = false;
+  }
+}
 // ============================================================
 //  メモ編集
 // ============================================================
