@@ -3,7 +3,7 @@
 //  GitHub Pages のフロントからこのファイルを読み込んで使う
 // ============================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzyVApXr5tuKg4k3ygoipwb9b6MX7yecb2HKaoAK44eQxKiEH_F8nHUF22SoPGIZe_A/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxLCinpT2n_I-NemaAVc5wqy7wnQLoCjuQ6fILaEhR2zMhTyodOn0qxEluwNFdBqAzQ/exec';
 
 async function gasRequest(action, params = {}, body = null) {
   const url = new URL(API_URL);

@@ -981,27 +981,56 @@ function openAddAngle() {
   input.click();
 }
 
-async function uploadPhoto(file, 種別, アングル名) {
+async function uploadPhoto(file, 種別, アングル名, costumeId, costumeID) {
   showToast('写真をアップロード中...');
   try {
     const base64 = await fileToBase64(file);
-    const 順番 = (State.currentCostume['写真']||[]).length + 1;
-    const result = await gasRequestUpload('uploadPhoto', {
-      costumeId : State.currentCostume['id'],
-      衣装ID    : State.currentCostume['衣装ID'],
-      base64    : base64,
+    const 順番 = (State.currentCostume?.['写真']||[]).length + 1;
+    const cId  = costumeId || State.currentCostume?.['id'] || '';
+    const cID  = costumeID || State.currentCostume?.['衣装ID'] || '';
+
+    // Step1: GASからDrive直接アップロードURLを取得
+    const uploadInfo = await gasRequestUpload('getUploadUrl', {
+      costumeId : cId,
+      衣装ID    : cID,
       mimeType  : file.type,
       fileName  : file.name,
       種別      : 種別,
-      アングル名 : アングル名,
+      アングル名 : アングル名 || '',
       順番      : 順番,
     });
+
+    // Step2: DriveにPUT（uploadInfoにfileIdが含まれる）
+    // ※ DriveのresumableアップロードはレスポンスヘッダーにfileIdが入る
+    // PUTのレスポンスからfileIdを取得してfinalizePhotoを呼ぶ
+    const binary = atob(base64);
+    const bytes  = new Uint8Array(binary.length);
+    for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: file.type });
+
+    const putRes = await fetch(uploadInfo.uploadUrl, {
+      method : 'PUT',
+      headers: { 'Content-Type': file.type },
+      body   : blob,
+    });
+
+    if(!putRes.ok) throw new Error('Driveアップロード失敗: ' + putRes.status);
+
+    // Step3: レスポンスからfileIdを取得してURLを確定
+    const driveData = await putRes.json();
+    const fileId = driveData.id;
+
+    // Step4: GASでファイルを公開してURLをシートに保存
+    await gasRequest('finalizePhoto', { photoId: uploadInfo.photoId, fileId });
+
     showToast('写真を保存しました');
-    // 衣装詳細を再読み込み
-    State.currentCostume = await CostumeAPI.get(State.currentCostume['id']);
-    renderCostumeDetail();
+    if(State.currentCostume?.['id']) {
+      State.currentCostume = await CostumeAPI.get(State.currentCostume['id']);
+      renderCostumeDetail();
+    }
   } catch(e) {
     showToast('アップロード失敗: ' + e.message);
+    console.error(e);
   }
 }
 
@@ -1034,29 +1063,33 @@ function fileToBase64(file, maxSize=1280, quality=0.75) {
   });
 }
 
-// 写真アップロード専用（Base64をGETパラメーターに入れるとURL長制限に引っかかるため
-// JSONボディのPOSTで送るが、GASはPOSTのCORSを処理できないので
-// multipart/form-dataの代わりにチャンク分割なしで直接URLパラメーターに入れる
-// → Base64が長いためURLエンコード後にPOSTで送る方式に変更
+// 写真アップロード専用
+// GASはCORSでPOSTを弾くため、Google Drive APIに直接アップロードする方式を使用
+// 手順: 1)GASでアップロード用の一時トークンURLを取得 2)そのURLに画像をPUT
 async function gasRequestUpload(action, params) {
+  // まずGASからDrive書き込み用のURLを取得
   const url = new URL(API_URL);
-  url.searchParams.set('action', action);
-  // base64以外のパラメーターをURLに追加
+  url.searchParams.set('action', 'getUploadUrl');
   Object.entries(params).forEach(([k, v]) => {
-    if(k !== 'base64') url.searchParams.set(k, v);
+    if(k !== 'base64') url.searchParams.set(k, String(v));
   });
-  // base64はフォームデータで送る（GASのdoPostで受け取る）
-  const formData = new FormData();
-  formData.append('base64', params.base64);
-
-  // GASはCORSでPOSTを弾くため、Base64をURLパラメーターに分割して送る
-  // 代替案：Base64を複数チャンクに分けてGETで送る
-  // 実用的な解決策：Base64全体をURLパラメーターに追加（GASのURL長制限は約2000文字）
-  // 大きい画像はリサイズして対応
-  url.searchParams.set('base64', params.base64);
   const res  = await fetch(url.toString(), { method: 'GET' });
   const data = await res.json();
-  if(!data.ok) throw new Error(data.error || 'APIエラー');
+  if(!data.ok) throw new Error(data.error || 'アップロードURL取得失敗');
+
+  // Base64をBlobに変換してDriveに直接PUT
+  const binary = atob(params.base64);
+  const bytes  = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: params.mimeType || 'image/jpeg' });
+
+  const putRes = await fetch(data.data.uploadUrl, {
+    method : 'PUT',
+    headers: { 'Content-Type': params.mimeType || 'image/jpeg' },
+    body   : blob,
+  });
+  if(!putRes.ok) throw new Error('Driveアップロード失敗: ' + putRes.status);
+
   return data.data;
 }
 function openLinkFromCostume() {
