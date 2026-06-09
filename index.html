@@ -984,66 +984,66 @@ function openAddAngle() {
 async function uploadPhoto(file, 種別, アングル名, costumeId, costumeID) {
   showToast('写真をアップロード中...');
   try {
-    const base64 = await fileToBase64(file);
     const 順番 = (State.currentCostume?.['写真']||[]).length + 1;
     const cId  = costumeId || State.currentCostume?.['id'] || '';
     const cID  = costumeID || State.currentCostume?.['衣装ID'] || '';
 
-    // Step1: GASからDrive直接アップロードURLを取得
-    const uploadInfo = await gasRequestUpload('getUploadUrl', {
+    // Step1: GASからDrive resumable upload URLと仮photoIdを取得
+    const uploadInfo = await gasRequest('getUploadUrl', {
       costumeId : cId,
       衣装ID    : cID,
       mimeType  : file.type,
-      fileName  : file.name,
+      fileName  : file.name || 'photo.jpg',
       種別      : 種別,
       アングル名 : アングル名 || '',
       順番      : 順番,
     });
+    console.log('uploadInfo:', uploadInfo);
 
-    // Step2: DriveにPUT（uploadInfoにfileIdが含まれる）
-    // ※ DriveのresumableアップロードはレスポンスヘッダーにfileIdが入る
-    // PUTのレスポンスからfileIdを取得してfinalizePhotoを呼ぶ
-    const binary = atob(base64);
-    const bytes  = new Uint8Array(binary.length);
-    for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: file.type });
+    if(!uploadInfo?.uploadUrl) throw new Error('uploadUrlが取得できませんでした');
 
+    // Step2: リサイズしてBlobを作成
+    const resizedBlob = await resizeImage(file);
+
+    // Step3: DriveにPUT
     const putRes = await fetch(uploadInfo.uploadUrl, {
       method : 'PUT',
-      headers: { 'Content-Type': file.type },
-      body   : blob,
+      headers: { 'Content-Type': 'image/jpeg' },
+      body   : resizedBlob,
     });
-
+    console.log('Drive PUT status:', putRes.status);
     if(!putRes.ok) throw new Error('Driveアップロード失敗: ' + putRes.status);
 
-    // Step3: レスポンスからfileIdを取得してURLを確定
+    // Step4: fileIdを取得してURLを確定
     const driveData = await putRes.json();
+    console.log('Drive response:', driveData);
     const fileId = driveData.id;
-
-    // Step4: GASでファイルを公開してURLをシートに保存
-    await gasRequest('finalizePhoto', { photoId: uploadInfo.photoId, fileId });
+    if(fileId && uploadInfo.photoId) {
+      await gasRequest('finalizePhoto', { photoId: uploadInfo.photoId, fileId });
+    }
 
     showToast('写真を保存しました');
     if(State.currentCostume?.['id']) {
-      State.currentCostume = await CostumeAPI.get(State.currentCostume['id']);
-      renderCostumeDetail();
+      try {
+        State.currentCostume = await CostumeAPI.get(State.currentCostume['id']);
+        renderCostumeDetail();
+      } catch(e2) {}
     }
   } catch(e) {
     showToast('アップロード失敗: ' + e.message);
-    console.error(e);
+    console.error('uploadPhoto error:', e);
   }
 }
 
-// 画像をリサイズ・圧縮してBase64で返す（最大1280px・品質0.75）
-function fileToBase64(file, maxSize=1280, quality=0.75) {
+// 画像をリサイズしてBlobで返す
+function resizeImage(file, maxSize=1280, quality=0.75) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        let w = img.width;
-        let h = img.height;
-        console.log('元画像サイズ:', w, 'x', h);
+        let w = img.width, h = img.height;
+        console.log('元画像:', w, 'x', h, file.type);
         if(w > maxSize || h > maxSize) {
           if(w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
           else      { w = Math.round(w * maxSize / h); h = maxSize; }
@@ -1051,18 +1051,20 @@ function fileToBase64(file, maxSize=1280, quality=0.75) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        const b64 = dataUrl.split(',')[1];
-        console.log('Base64取得完了, 長さ:', b64.length);
-        resolve(b64);
+        canvas.toBlob((blob) => {
+          console.log('リサイズ後Blob:', blob.size, 'bytes');
+          resolve(blob);
+        }, 'image/jpeg', quality);
       };
-      img.onerror = (err) => { console.error('画像読み込みエラー:', err); reject(err); };
+      img.onerror = reject;
       img.src = e.target.result;
     };
-    reader.onerror = (err) => { console.error('FileReaderエラー:', err); reject(err); };
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
+
+// fileToBase64 は resizeImage に統合済み
 
 // 写真アップロード専用
 // GASはCORSでPOSTを弾くため、Google Drive APIに直接アップロードする方式を使用
