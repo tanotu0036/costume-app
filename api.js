@@ -2,7 +2,7 @@
 //  GAS API クライアント（CORS対応版 - GETのみ使用）
 // ============================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbzckaqaCZIG6C4IJiDnUCT0F8Swy8i7j_d49ro2eJLQHeMtH0EP2vm1bumABz4Y_k1a/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxIuYCVAfcitFdmX8LVlfnRTeuZo45na31Q8bIwqwgv9QjCNN4yX0KK3ukvX_llsx6W/exec';
 
 async function gasRequest(action, params = {}) {
   const url = new URL(API_URL);

@@ -297,7 +297,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-size:14px;overfl
     <div style="flex:1;overflow-y:auto">
       <div class="detail-photo-main" id="detail-main-photo">
         <i class="ti ti-hanger"></i>
-        <button class="add-angle-btn" onclick="openAddAngle()"><i class="ti ti-camera-plus" style="font-size:13px"></i>別アングル追加</button>
+
       </div>
       <div class="thumb-row" id="detail-thumbs"></div>
 
@@ -908,9 +908,9 @@ function renderCostumeDetail() {
   const mainPhoto = (c['写真']||[]).find(p=>p['種別']==='メイン');
   const mainEl = document.getElementById('detail-main-photo');
   if(mainPhoto) {
-    mainEl.innerHTML = `<img src="${mainPhoto['URL']}" alt=""><button class="add-angle-btn" onclick="openAddAngle()"><i class="ti ti-camera-plus" style="font-size:13px"></i>別アングル追加</button>`;
+    mainEl.innerHTML = `<img src="${mainPhoto['URL']}" alt="">`;
   } else {
-    mainEl.innerHTML = `<i class="ti ti-hanger"></i><button class="add-angle-btn" onclick="openAddAngle()"><i class="ti ti-camera-plus" style="font-size:13px"></i>別アングル追加</button>`;
+    mainEl.innerHTML = `<i class="ti ti-hanger"></i>`;
   }
   thumbs.innerHTML = (c['写真']||[]).map((p,i)=>`
     <div class="thumb-item ${i===0?'active':''}">
@@ -993,7 +993,7 @@ async function uploadPhoto(file, 種別, アングル名, costumeId, costumeID) 
     console.log('Base64長さ:', b64.length);
 
     // Step2: チャンク分割してGAS経由でアップロード
-    const CHUNK_SIZE = 5000; // GASのURL長制限に合わせて小さく
+    const CHUNK_SIZE = 10000; // 10KB/チャンク（約9チャンクに削減）
     const chunks     = [];
     for(let i = 0; i < b64.length; i += CHUNK_SIZE) {
       chunks.push(b64.slice(i, i + CHUNK_SIZE));
