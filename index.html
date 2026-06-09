@@ -993,7 +993,7 @@ async function uploadPhoto(file, 種別, アングル名, costumeId, costumeID) 
     console.log('Base64長さ:', b64.length);
 
     // Step2: チャンク分割してGAS経由でアップロード
-    const CHUNK_SIZE = 50000; // 約50KB/チャンク（URLパラメーターの安全な上限）
+    const CHUNK_SIZE = 5000; // GASのURL長制限に合わせて小さく
     const chunks     = [];
     for(let i = 0; i < b64.length; i += CHUNK_SIZE) {
       chunks.push(b64.slice(i, i + CHUNK_SIZE));
