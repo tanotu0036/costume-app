@@ -1041,9 +1041,9 @@ function fileToBase64(file, maxSize=1280, quality=0.75) {
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // リサイズが不要なら圧縮のみ
         let w = img.width;
         let h = img.height;
+        console.log('元画像サイズ:', w, 'x', h);
         if(w > maxSize || h > maxSize) {
           if(w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
           else      { w = Math.round(w * maxSize / h); h = maxSize; }
@@ -1051,14 +1051,15 @@ function fileToBase64(file, maxSize=1280, quality=0.75) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        // jpeg変換してBase64取得
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl.split(',')[1]);
+        const b64 = dataUrl.split(',')[1];
+        console.log('Base64取得完了, 長さ:', b64.length);
+        resolve(b64);
       };
-      img.onerror = reject;
+      img.onerror = (err) => { console.error('画像読み込みエラー:', err); reject(err); };
       img.src = e.target.result;
     };
-    reader.onerror = reject;
+    reader.onerror = (err) => { console.error('FileReaderエラー:', err); reject(err); };
     reader.readAsDataURL(file);
   });
 }
