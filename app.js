@@ -1209,7 +1209,7 @@ function renderSettings(body){
         ${GARDENS.map(g=>`
           <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br)">
             <div style="min-width:70px;font-size:13px;font-weight:700;color:var(--tx)">${g}</div>
-            <input type="date" id="hdate_${g}" value="${S.happiouDates[g]||''}" style="flex:1;height:34px;font-size:13px">
+            <input type="date" id="hdate_${g}" value="${toDateInput(S.happiouDates[g]||'')}" style="flex:1;height:34px;font-size:13px">
           </div>`).join('')}
         <div style="padding:10px 12px">
           <button class="btn-primary" id="btnSaveHDates" style="background:var(--gr)"><i class="ti ti-device-floppy"></i>発表会日を保存</button>
@@ -1806,47 +1806,60 @@ function renderScheduleTable(year){
     return;
   }
 
-  // 表形式でレンダリング
+  // 表形式でレンダリング（添付画像スタイル：衣装行×園列）
   const showGardens = fGarden==='全園' ? order : [fGarden];
+  const colW = fGarden==='全園' ? Math.floor(100/order.length) : 80;
 
   wrap.innerHTML=conflictHTML+`
-    <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">${year}年度 発表会使用表明一覧</div>
-    ${costumes.map(c=>{
-      const cDecls=decls.filter(d=>d.衣装id===c.id);
-      const isConflict=conflicts.has(c.id);
-      return `
-        <div style="background:var(--bg2);border:0.5px solid ${isConflict?'#F09595':'var(--br)'};border-radius:var(--r);margin-bottom:8px;overflow:hidden;box-shadow:1px 1px 0 var(--br2)" data-cid="${c.id}">
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer" data-open-costume="${c.id}">
-            <div style="width:40px;height:40px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center">
-              ${c.メイン写真URL?`<img src="${esc(c.メイン写真URL)}" style="width:100%;height:100%;object-fit:cover">`:`<i class="ti ti-hanger" style="color:var(--br2);font-size:20px"></i>`}
-            </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:10px;color:var(--tx3)">${esc(c.衣装ID)} ${esc(c.カテゴリー)}</div>
-              <div style="font-size:13px;font-weight:700;color:var(--tx)">${esc(c.衣装名)}</div>
-            </div>
-            ${isConflict?`<i class="ti ti-alert-triangle" style="color:#E24B4A;font-size:16px"></i>`:''}
-          </div>
-          <div style="display:flex;gap:6px;padding:0 10px 8px;flex-wrap:wrap">
-            ${showGardens.map(g=>{
-              const d=cDecls.find(x=>x.園===g);
-              if(!d) return '';
-              const dateStr=S.happiouDates[g]?formatDate(S.happiouDates[g]):'';
-              const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[g]||'nishi';
-              return `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                  <span class="badge badge-${gc}" style="font-size:11px;padding:3px 10px">${g}</span>
-                  ${dateStr?`<span style="font-size:9px;color:var(--tx3)">${dateStr}</span>`:''}
-                  <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0">取消</button>
-                </div>`;
-            }).join('')}
-          </div>
-          <div style="padding:0 10px 8px">
-            <button data-link-decl="${c.id}" style="font-size:11px;color:var(--gr);background:var(--gr-l);border:0.5px solid var(--gr-b);border-radius:var(--r-sm);padding:4px 10px;cursor:pointer;font-family:inherit">
-              <i class="ti ti-link" style="font-size:11px"></i> 演目に紐づける
-            </button>
-          </div>
-        </div>`;
-    }).join('')}`;
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:320px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br);width:45%">衣装</th>
+            ${showGardens.map(g=>`
+              <th style="text-align:center;padding:6px 4px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br)">
+                ${g}<br><span style="font-size:9px;color:var(--gr)">${S.happiouDates[g]?formatDate(S.happiouDates[g]):'未設定'}</span>
+              </th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${costumes.map(c=>{
+            const cDecls=decls.filter(d=>d.衣装id===c.id);
+            const isConflict=conflicts.has(c.id);
+            return `
+              <tr style="border-bottom:0.5px solid var(--br);${isConflict?'background:#FFF8F8':''}">
+                <td style="padding:8px 8px;vertical-align:middle">
+                  <div style="display:flex;align-items:center;gap:7px;cursor:pointer" data-open-costume="${c.id}">
+                    <div style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center">
+                      ${c.メイン写真URL?`<img src="${esc(c.メイン写真URL)}" style="width:100%;height:100%;object-fit:cover">`:`<i class="ti ti-hanger" style="color:var(--br2);font-size:16px"></i>`}
+                    </div>
+                    <div style="min-width:0">
+                      <div style="font-size:9px;color:var(--tx3)">${esc(c.衣装ID)}</div>
+                      <div style="font-size:12px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px">${esc(c.衣装名)}</div>
+                      ${isConflict?`<span style="font-size:9px;color:#A32D2D"><i class="ti ti-alert-triangle" style="font-size:9px"></i> 競合</span>`:''}
+                    </div>
+                  </div>
+                  <button data-link-decl="${c.id}" style="margin-top:4px;font-size:10px;color:var(--gr);background:var(--gr-l);border:0.5px solid var(--gr-b);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;display:block">
+                    <i class="ti ti-link" style="font-size:10px"></i> 演目に紐づける
+                  </button>
+                </td>
+                ${showGardens.map(g=>{
+                  const d=cDecls.find(x=>x.園===g);
+                  const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[g]||'nishi';
+                  return `<td style="text-align:center;padding:6px 4px;vertical-align:middle">
+                    ${d?`
+                      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                        <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}</span>
+                        <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
+                      </div>
+                    `:`<span style="color:var(--br2);font-size:16px">—</span>`}
+                  </td>`;
+                }).join('')}
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
 
   // 衣装詳細に飛ぶ
   wrap.querySelectorAll('[data-open-costume]').forEach(el=>{
@@ -1879,6 +1892,18 @@ function renderScheduleTable(year){
       setTimeout(()=>openRepLinkFromSchedule(cid),300);
     };
   });
+}
+
+function toDateInput(str){
+  if(!str)return '';
+  // ISO形式（2026-11-27T15:00:00.000Z）をyyyy-MM-ddに変換
+  const m=str.match(/^(\d{4}-\d{2}-\d{2})/);
+  if(m)return m[1];
+  const d=new Date(str);
+  if(!isNaN(d.getTime())){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  return '';
 }
 
 function formatDate(str){
