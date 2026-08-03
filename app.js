@@ -193,7 +193,7 @@ function shellHTML(page,isSub){
       ${showMenu?'<button class="hdr-icon" id="btnMenu"><i class="ti ti-dots-vertical"></i></button>':''}
     </div>
     <div class="page active" id="pageBody"></div>
-    ${!isSub?navHTML():''}
+    ${navHTML()}
     ${(!isSub&&(page==='costumes'||page==='repertoires'))?'<button class="fab" id="btnFab"><i class="ti ti-plus"></i></button>':''}`;
 }
 
