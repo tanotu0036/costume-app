@@ -349,7 +349,7 @@ function renderCostumeDetail(body){
         ${rowHTML('衣装ID',esc(c.衣装ID))}${rowHTML('カテゴリー',esc(c.カテゴリー))}${rowHTML('対象年齢',ageBadge(c.対象年齢,'3px 10px','12px'))}${rowHTML('衣装名',esc(c.衣装名)||'（未設定）')}${rowHTML('個数',c.個数?esc(c.個数)+'着':'')}${rowHTML('製作園',esc(c.製作園))}${rowHTML('メモ',esc(c.メモ))}
       </div>
       <div class="section"><div class="section-title"><i class="ti ti-building-warehouse"></i>保管・状態</div></div>
-      <div class="card">${rowHTML('保管場所',esc(c.保管場所))}${rowHTML('移動先',esc(c.移動先)||'（現在地）')}${rowHTML('状態',sBadge(c.状態))}</div>
+      <div class="card">${rowHTML('保管場所',esc(c.保管場所))}${rowHTML('移動先',esc(c.移動先)||'（どこにある？）')}${rowHTML('状態',sBadge(c.状態))}</div>
       <div class="section"><div class="section-title"><i class="ti ti-calendar-event"></i>使用予定</div></div>
       <div class="card" style="padding:10px 12px">
         <div id="declBadges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
