@@ -4,7 +4,7 @@
 //  POST … 写真アップロード（text/plainでCORSプリフライト回避）
 // ============================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbxL_WQdcIdayDr8X5JoQp77XVN7ZMfn_Py3h78Mxx5tmPh0lsYzGESW2gYiOJwztMb4/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbycOrtQcmN3JOt9dgF83ynGAk7oq0JozMzfvBPxbkoHn2Yo_uNNujKwyipLIX71BKrH/exec';
 
 // 軽量リクエスト（GET）
 async function api(action, params = {}) {
