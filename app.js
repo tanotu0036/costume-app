@@ -10,6 +10,7 @@ const S = {
   costumes:[], photos:[], repertoires:[], usages:[], settings:{},
   gardenOrder:['西新','原','たの津','ちくし野'], myGarden:'西新',
   nav:'costumes', stack:[],
+  declarations:[], happiouDates:{},
   fStatus:'', fCat:'', fAge:'', fYear:'', fGarden:'',
   curCostume:null, curRep:null,
   loaded:false, listMode:'grid', // 'grid' or 'list'
@@ -77,6 +78,8 @@ function applyData(d){
   S.photos=(d.photos||[]).filter(r=>String(r.削除フラグ)!=='1');
   S.repertoires=(d.repertoires||[]).filter(r=>String(r.削除フラグ)!=='1');
   S.usages=(d.usages||[]).filter(r=>String(r.削除フラグ)!=='1');
+  S.declarations=(d.declarations||[]).filter(r=>String(r.取消フラグ)!=='1');
+  S.happiouDates=d.happiouDates||{};
   S.settings=d.settings||{};
   // マイ園・表示順は端末ローカル設定（localStorage）を優先。なければデフォルト
   const localMy=localStorage.getItem('myGarden_local');
@@ -169,6 +172,7 @@ function render(){
   const body=document.getElementById('pageBody');
   if(page==='costumes') renderCostumes(body); // bodyを渡すが内部で再取得もする
   else if(page==='repertoires') renderReps(body);
+  else if(page==='schedules') renderSchedules(body);
   else if(page==='settings') renderSettings(body);
   else if(page==='costume-detail') renderCostumeDetail(body);
   else if(page==='costume-add') initCostumeAdd(body);
@@ -195,7 +199,7 @@ function shellHTML(page,isSub){
 
 function navHTML(){
   const n=(id,icon,label)=>`<button class="nav-btn ${S.nav===id?'active':''}" data-nav="${id}"><i class="ti ti-${icon}"></i>${label}</button>`;
-  return `<div class="bottom-nav">${n('costumes','hanger','衣装一覧')}${n('repertoires','theater','演目一覧')}${n('settings','settings','設定')}</div>`;
+  return `<div class="bottom-nav">${n('costumes','hanger','衣装一覧')}${n('repertoires','theater','演目一覧')}${n('schedules','calendar-event','使用予定')}${n('settings','settings','設定')}</div>`;
 }
 
 function bindShell(){
@@ -209,6 +213,8 @@ function bindShell(){
 function pushPage(p){S.stack.push(p);render();}
 function goBack(){S.stack.pop();render();}
 function onFab(){if(S.nav==='costumes')pushPage('costume-add');else if(S.nav==='repertoires')pushPage('rep-add');}
+// 現在年度取得
+function currentYear(){return new Date().getFullYear();}
 
 // ============================================================
 //  3点メニュー
@@ -344,6 +350,11 @@ function renderCostumeDetail(body){
       </div>
       <div class="section"><div class="section-title"><i class="ti ti-building-warehouse"></i>保管・状態</div></div>
       <div class="card">${rowHTML('保管場所',esc(c.保管場所))}${rowHTML('移動先',esc(c.移動先)||'（現在地）')}${rowHTML('状態',sBadge(c.状態))}</div>
+      <div class="section"><div class="section-title"><i class="ti ti-calendar-event"></i>使用予定</div></div>
+      <div class="card" style="padding:10px 12px">
+        <div id="declBadges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+        <button class="btn-sub" id="btnDeclare" style="font-size:12px"><i class="ti ti-plus"></i>使用表明する</button>
+      </div>
       <div class="section"><div class="section-title"><i class="ti ti-history"></i>使用履歴</div></div>
       <div class="card" style="padding:0"><div class="timeline" id="histList"></div></div>
       <div style="padding:12px"><button class="btn-primary" id="btnLinkRep"><i class="ti ti-plus"></i>演目に紐づける</button></div>
@@ -1176,6 +1187,18 @@ function renderSettings(body){
       <div style="padding:0 12px" id="orderList"></div>
       <div style="padding:12px"><button class="btn-primary" id="btnSaveS"><i class="ti ti-device-floppy"></i>設定を保存</button></div>
 
+      <div class="section"><div class="section-title"><i class="ti ti-calendar-event"></i>発表会日設定（${new Date().getFullYear()}年度）</div></div>
+      <div class="card" style="padding:0">
+        ${GARDENS.map(g=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br)">
+            <div style="min-width:70px;font-size:13px;font-weight:700;color:var(--tx)">${g}</div>
+            <input type="date" id="hdate_${g}" value="${S.happiouDates[g]||''}" style="flex:1;height:34px;font-size:13px">
+          </div>`).join('')}
+        <div style="padding:10px 12px">
+          <button class="btn-primary" id="btnSaveHDates" style="background:var(--gr)"><i class="ti ti-device-floppy"></i>発表会日を保存</button>
+        </div>
+      </div>
+
       <div class="section"><div class="section-title"><i class="ti ti-printer"></i>衣装ID ラベル印刷</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">ジップロックに入れる衣装ID紙をA4横向きで印刷します</div>
@@ -1280,6 +1303,20 @@ function renderSettings(body){
   }
   body.querySelectorAll('#mgChips .chip').forEach(b=>b.onclick=()=>{body.querySelectorAll('#mgChips .chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.myGarden=b.dataset.g;renderOrder();});
   document.getElementById('btnOpenLabelPrint').onclick=openLabelPrintModal;
+  document.getElementById('btnSaveHDates').onclick=async()=>{
+    const btn=document.getElementById('btnSaveHDates');
+    setBtn(btn,'<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 保存中...',true);
+    try{
+      for(const g of GARDENS){
+        const v=document.getElementById('hdate_'+g)?.value||'';
+        await api('setSetting',{key:'happyouDate_'+g,value:v});
+        S.happiouDates[g]=v;
+      }
+      setBtn(btn,'<i class="ti ti-circle-check"></i> 保存完了！',false,'var(--gr2)');
+      toast('発表会日を保存しました');
+      setTimeout(()=>setBtn(btn,'<i class="ti ti-device-floppy"></i>発表会日を保存',false,''),2000);
+    }catch(e){toast('保存失敗: '+e.message);}
+  };
   document.getElementById('btnShowDeleted').onclick=openDeletedCostumesModal;
   document.getElementById('btnSaveS').onclick=async()=>{
     const btn=document.getElementById('btnSaveS');
@@ -1675,3 +1712,270 @@ async function refreshAll(){
   render();
   await loadAll();
 })();
+
+// ============================================================
+//  使用予定タブ
+// ============================================================
+const CURRENT_YEAR = new Date().getFullYear();
+
+function renderSchedules(body){
+  if(!S.loaded){body.innerHTML='<div class="loading"><i class="ti ti-loader-2"></i>読み込み中...</div>';return;}
+  const year = S.scheduleYear || CURRENT_YEAR;
+
+  // 年度フィルター（現在年度±2年）
+  const years = [year-1, year, year+1];
+  const yearPills = years.map(y=>`<button class="filter-pill ${y===year?'on':''}" data-sy="${y}">${y}年度</button>`).join('');
+
+  // 園フィルター
+  const gardens = ['全園',...GARDENS];
+  const gardenPills = gardens.map(g=>`<button class="filter-pill ${(S.scheduleGarden||'全園')===g?'on':''}" data-sg="${g}">${g}</button>`).join('');
+
+  body.innerHTML=`
+    <div class="filter-bar">${yearPills}</div>
+    <div class="filter-bar">${gardenPills}</div>
+    <div id="schWrap" style="flex:1;overflow-y:auto;padding:8px 12px"></div>`;
+
+  body.querySelectorAll('[data-sy]').forEach(b=>b.onclick=()=>{S.scheduleYear=parseInt(b.dataset.sy);renderSchedules(body);});
+  body.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{S.scheduleGarden=b.dataset.sg;renderSchedules(body);});
+
+  renderScheduleTable(year);
+}
+
+function renderScheduleTable(year){
+  const wrap=document.getElementById('schWrap');
+  if(!wrap)return;
+
+  const fGarden = S.scheduleGarden||'全園';
+  const decls = S.declarations.filter(d=>String(d.年度)===String(year));
+  const order = S.gardenOrder||GARDENS;
+
+  // 表明がある衣装を抽出
+  const costumeIds = [...new Set(decls.map(d=>d.衣装id))];
+  let costumes = S.costumes.filter(c=>costumeIds.includes(c.id));
+  if(fGarden!=='全園') costumes=costumes.filter(c=>decls.some(d=>d.衣装id===c.id&&d.園===fGarden));
+
+  // 競合チェック（同じ衣装を複数園が同日または隣接日に表明）
+  const conflicts=new Set();
+  costumeIds.forEach(cid=>{
+    const cDecls=decls.filter(d=>d.衣装id===cid);
+    if(cDecls.length>1){
+      const dates=cDecls.map(d=>S.happiouDates[d.園]).filter(Boolean);
+      if(dates.length>1){
+        // 日付の差が3日以内なら競合警告
+        const ms=dates.map(d=>new Date(d).getTime()).filter(t=>!isNaN(t));
+        ms.sort((a,b)=>a-b);
+        if(ms.length>1&&(ms[ms.length-1]-ms[0])<3*24*3600*1000) conflicts.add(cid);
+      } else {
+        conflicts.add(cid); // 日付未設定でも複数園表明なら警告
+      }
+    }
+  });
+
+  // 競合バナー
+  const conflictHTML = conflicts.size>0 ? `
+    <div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:var(--r);padding:10px 12px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start">
+      <i class="ti ti-alert-triangle" style="color:#A32D2D;font-size:16px;flex-shrink:0;margin-top:1px"></i>
+      <div style="font-size:12px;color:#A32D2D;line-height:1.6">
+        ${[...conflicts].map(cid=>{
+          const c=S.costumes.find(x=>x.id===cid);
+          const cDecls=decls.filter(d=>d.衣装id===cid);
+          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>：${cDecls.map(d=>`${d.園}${S.happiouDates[d.園]?'（'+formatDate(S.happiouDates[d.園])+'）':''}`).join('・')}で使用予定`;
+        }).join('<br>')}
+      </div>
+    </div>`:'' ;
+
+  if(costumes.length===0){
+    wrap.innerHTML=conflictHTML+'<div class="empty"><i class="ti ti-calendar-event" style="font-size:36px;color:var(--br2)"></i><p>使用表明がありません</p><p style="font-size:11px;color:var(--tx3)">衣装詳細から「使用表明」を登録できます</p></div>';
+    return;
+  }
+
+  // 表形式でレンダリング
+  const showGardens = fGarden==='全園' ? order : [fGarden];
+
+  wrap.innerHTML=conflictHTML+`
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">${year}年度 発表会使用表明一覧</div>
+    ${costumes.map(c=>{
+      const cDecls=decls.filter(d=>d.衣装id===c.id);
+      const isConflict=conflicts.has(c.id);
+      return `
+        <div style="background:var(--bg2);border:0.5px solid ${isConflict?'#F09595':'var(--br)'};border-radius:var(--r);margin-bottom:8px;overflow:hidden;box-shadow:1px 1px 0 var(--br2)" data-cid="${c.id}">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer" data-open-costume="${c.id}">
+            <div style="width:40px;height:40px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center">
+              ${c.メイン写真URL?`<img src="${esc(c.メイン写真URL)}" style="width:100%;height:100%;object-fit:cover">`:`<i class="ti ti-hanger" style="color:var(--br2);font-size:20px"></i>`}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;color:var(--tx3)">${esc(c.衣装ID)} ${esc(c.カテゴリー)}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--tx)">${esc(c.衣装名)}</div>
+            </div>
+            ${isConflict?`<i class="ti ti-alert-triangle" style="color:#E24B4A;font-size:16px"></i>`:''}
+          </div>
+          <div style="display:flex;gap:6px;padding:0 10px 8px;flex-wrap:wrap">
+            ${showGardens.map(g=>{
+              const d=cDecls.find(x=>x.園===g);
+              if(!d) return '';
+              const dateStr=S.happiouDates[g]?formatDate(S.happiouDates[g]):'';
+              const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[g]||'nishi';
+              return `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <span class="badge badge-${gc}" style="font-size:11px;padding:3px 10px">${g}</span>
+                  ${dateStr?`<span style="font-size:9px;color:var(--tx3)">${dateStr}</span>`:''}
+                  <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0">取消</button>
+                </div>`;
+            }).join('')}
+          </div>
+          <div style="padding:0 10px 8px">
+            <button data-link-decl="${c.id}" style="font-size:11px;color:var(--gr);background:var(--gr-l);border:0.5px solid var(--gr-b);border-radius:var(--r-sm);padding:4px 10px;cursor:pointer;font-family:inherit">
+              <i class="ti ti-link" style="font-size:11px"></i> 演目に紐づける
+            </button>
+          </div>
+        </div>`;
+    }).join('')}`;
+
+  // 衣装詳細に飛ぶ
+  wrap.querySelectorAll('[data-open-costume]').forEach(el=>{
+    el.onclick=()=>openCostumeDetail(el.dataset.openCostume);
+  });
+
+  // 表明取消
+  wrap.querySelectorAll('[data-del-decl]').forEach(btn=>{
+    btn.onclick=async(e)=>{
+      e.stopPropagation();
+      if(!window.confirm('この表明を取り消しますか？'))return;
+      try{
+        await api('deleteDeclaration',{id:btn.dataset.delDecl});
+        S.declarations=S.declarations.filter(d=>d.id!==btn.dataset.delDecl);
+        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+        renderScheduleTable(year);
+        toast('表明を取り消しました');
+      }catch(e2){toast('取消失敗: '+e2.message);}
+    };
+  });
+
+  // 演目に紐づける
+  wrap.querySelectorAll('[data-link-decl]').forEach(btn=>{
+    btn.onclick=(e)=>{
+      e.stopPropagation();
+      const cid=btn.dataset.linkDecl;
+      S.curCostume=S.costumes.find(c=>c.id===cid)||{id:cid};
+      pushPage('costume-detail');
+      // 詳細表示後に演目紐づけモーダルを自動で開く
+      setTimeout(()=>openRepLinkFromSchedule(cid),300);
+    };
+  });
+}
+
+function formatDate(str){
+  if(!str)return '';
+  const d=new Date(str);
+  if(isNaN(d.getTime())){
+    // YYYY-MM-DD形式の場合
+    const m=str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return `${m[2]}/${m[3]}`;
+    return str;
+  }
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function openRepLinkFromSchedule(costumeId){
+  // 演目紐づけモーダルを開く（衣装詳細ページのaddUsage相当）
+  const c=S.costumes.find(x=>x.id===costumeId);
+  if(!c)return;
+  const year=S.scheduleYear||CURRENT_YEAR;
+  const reps=S.repertoires.filter(r=>String(r.年度)===String(year));
+  if(reps.length===0){
+    toast(`${year}年度の演目がまだ登録されていません`);
+    return;
+  }
+  openModal(`演目に紐づける（${c.衣装ID} ${c.衣装名}）`,`
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">${year}年度の演目を選択してください</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${reps.map(r=>`
+        <div style="padding:10px;background:var(--bg2);border:0.5px solid var(--br);border-radius:var(--r);cursor:pointer" data-rep-link="${r.id}">
+          <div style="font-size:13px;font-weight:700;color:var(--tx)">${esc(r.演目名)}</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">${gBadge(r.園)} ${esc(r.クラス||'')}</div>
+        </div>`).join('')}
+    </div>
+  `,'キャンセル',closeModal,(ov)=>{
+    ov.querySelectorAll('[data-rep-link]').forEach(el=>{
+      el.onclick=async()=>{
+        const repId=el.dataset.repLink;
+        try{
+          const res=await api('addUsage',{演目id:repId,衣装id:costumeId,役柄:'',メモ:''});
+          const newUsage={id:res.id,演目id:repId,衣装id:costumeId,役柄:'',メモ:''};
+          S.usages.push(newUsage);
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          toast('演目に紐づけました！');
+          closeModal();
+        }catch(e2){toast('紐づけ失敗: '+e2.message);}
+      };
+    });
+  });
+}
+
+
+// ============================================================
+//  使用表明モーダル（衣装詳細から呼ぶ）
+// ============================================================
+function openDeclarationModal(costumeId){
+  const c=S.costumes.find(x=>x.id===costumeId);
+  if(!c)return;
+  const year=S.scheduleYear||CURRENT_YEAR;
+  const existing=S.declarations.filter(d=>d.衣装id===costumeId&&String(d.年度)===String(year));
+
+  openModal(`使用表明（${year}年度）`,`
+    <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:10px">${esc(c.衣装ID)} ${esc(c.衣装名)}</div>
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:8px">どの園が使用しますか？（複数選択可）</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${GARDENS.map(g=>{
+        const d=existing.find(x=>x.園===g);
+        const dateStr=S.happiouDates[g]?`（${formatDate(S.happiouDates[g])}）`:'';
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${d?'var(--gr-l)':'var(--bg2)'};border:0.5px solid ${d?'var(--gr-b)':'var(--br)'};border-radius:var(--r)">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:var(--tx)">${g}</span>
+              <span style="font-size:11px;color:var(--tx3)">${dateStr}</span>
+              ${d?`<span style="font-size:10px;color:var(--gr);margin-left:6px"><i class="ti ti-check" style="font-size:10px"></i> 表明済</span>`:''}
+            </div>
+            ${d
+              ?`<button data-cancel-decl="${d.id}" style="font-size:11px;color:var(--rd);background:var(--rd-l);border:0.5px solid var(--rd-b);border-radius:var(--r-sm);padding:3px 10px;cursor:pointer;font-family:inherit">取消</button>`
+              :`<button data-add-decl="${g}" style="font-size:11px;color:#fff;background:var(--gr);border:none;border-radius:var(--r-sm);padding:4px 12px;cursor:pointer;font-family:inherit">表明する</button>`
+            }
+          </div>`;
+      }).join('')}
+    </div>
+  `,'閉じる',closeModal,(ov)=>{
+    // 表明追加
+    ov.querySelectorAll('[data-add-decl]').forEach(btn=>{
+      btn.onclick=async()=>{
+        const g=btn.dataset.addDecl;
+        btn.disabled=true;btn.textContent='登録中...';
+        try{
+          const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g});
+          const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,取消フラグ:''};
+          S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
+          S.declarations.push(newDecl);
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          toast(`${g}の使用表明を登録しました`);
+          closeModal();
+          // 詳細画面を再描画
+          renderCostumeDetail(document.getElementById('pageBody'));
+        }catch(e2){toast('登録失敗: '+e2.message);}
+      };
+    });
+    // 表明取消
+    ov.querySelectorAll('[data-cancel-decl]').forEach(btn=>{
+      btn.onclick=async()=>{
+        if(!window.confirm('この表明を取り消しますか？'))return;
+        btn.disabled=true;
+        try{
+          await api('deleteDeclaration',{id:btn.dataset.cancelDecl});
+          S.declarations=S.declarations.filter(d=>d.id!==btn.dataset.cancelDecl);
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          toast('表明を取り消しました');
+          closeModal();
+          renderCostumeDetail(document.getElementById('pageBody'));
+        }catch(e2){toast('取消失敗: '+e2.message);}
+      };
+    });
+  });
+}
