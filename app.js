@@ -390,6 +390,23 @@ function renderCostumeDetail(body){
     </div>`).join(''):'<div style="padding:12px;text-align:center;font-size:12px;color:var(--tx3)">使用履歴なし</div>';
   document.getElementById('histList').querySelectorAll('[data-eu]').forEach(b=>b.onclick=()=>openEditUsageFromCostume(b.dataset.eu,b.dataset.role,b.dataset.memo));
   document.getElementById('btnLinkRep').onclick=openLinkRepModal;
+
+  // 使用予定バッジ表示 & ボタンバインド
+  const year=S.scheduleYear||CURRENT_YEAR;
+  const cDecls=S.declarations.filter(d=>d.衣装id===c.id&&String(d.年度)===String(year));
+  const declBadges=document.getElementById('declBadges');
+  if(declBadges){
+    if(cDecls.length===0){
+      declBadges.innerHTML=`<span style="font-size:12px;color:var(--tx3)">まだ表明されていません</span>`;
+    }else{
+      declBadges.innerHTML=cDecls.map(d=>{
+        const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[d.園]||'nishi';
+        const dateStr=S.happiouDates[d.園]?` ${formatDate(S.happiouDates[d.園])}`:'';
+        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}</span>`;
+      }).join('');
+    }
+  }
+  document.getElementById('btnDeclare').onclick=()=>openDeclarationModal(c.id);
 }
 
 function rowHTML(l,v){return `<div class="row"><span class="row-label">${l}</span><span class="row-value">${v||''}</span></div>`;}
