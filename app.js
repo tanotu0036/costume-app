@@ -54,6 +54,19 @@ function getRepMainPhotoURL(repId){
 
 function orderedGardens(){return [S.myGarden,...S.gardenOrder.filter(g=>g!==S.myGarden)];}
 
+// 発表会開催日の昇順で園を並べ替え（未設定の園は末尾）
+function gardensByHappiouDate(gardens){
+  return [...gardens].sort((a,b)=>{
+    const ta=S.happiouDates[a]?new Date(S.happiouDates[a]).getTime():NaN;
+    const tb=S.happiouDates[b]?new Date(S.happiouDates[b]).getTime():NaN;
+    const va=isNaN(ta),vb=isNaN(tb);
+    if(va&&vb)return gardens.indexOf(a)-gardens.indexOf(b);
+    if(va)return 1;
+    if(vb)return -1;
+    return ta-tb;
+  });
+}
+
 // ============================================================
 //  localStorageキャッシュ（2回目以降の起動を高速化）
 // ============================================================
@@ -1807,7 +1820,7 @@ function renderScheduleTable(year){
   }
 
   // 表形式でレンダリング（添付画像スタイル：衣装行×園列）
-  const showGardens = fGarden==='全園' ? order : [fGarden];
+  const showGardens = fGarden==='全園' ? gardensByHappiouDate(order) : [fGarden];
   const colW = fGarden==='全園' ? Math.floor(100/order.length) : 80;
 
   wrap.innerHTML=conflictHTML+`
