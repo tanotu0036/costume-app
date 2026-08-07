@@ -193,7 +193,7 @@ function render(){
   else if(page==='rep-add') initRepAdd(body);
 }
 
-const TITLES={costumes:'<i class="ti ti-hanger"></i> 衣装一覧',repertoires:'<i class="ti ti-theater"></i> 演目一覧',settings:'<i class="ti ti-settings"></i> 設定','costume-detail':'<i class="ti ti-hanger"></i> 衣装詳細','costume-add':'<i class="ti ti-plus"></i> 衣装登録','rep-detail':'<i class="ti ti-theater"></i> 演目詳細','rep-add':'<i class="ti ti-plus"></i> 演目登録'};
+const TITLES={costumes:'<i class="ti ti-hanger"></i> 衣装一覧',repertoires:'<i class="ti ti-theater"></i> 演目一覧',schedules:'<i class="ti ti-calendar-event"></i> 使用予定',settings:'<i class="ti ti-settings"></i> 設定','costume-detail':'<i class="ti ti-hanger"></i> 衣装詳細','costume-add':'<i class="ti ti-plus"></i> 衣装登録','rep-detail':'<i class="ti ti-theater"></i> 演目詳細','rep-add':'<i class="ti ti-plus"></i> 演目登録'};
 
 function shellHTML(page,isSub){
   const showMenu=['costume-detail','rep-detail'].includes(page);
