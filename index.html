@@ -202,6 +202,44 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-size:14px;overfl
 /* 小アイコンボタン（グリッド内） */
 .icon-sm{width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;background:rgba(255,255,255,.85);color:var(--tx2)}
 .icon-sm.danger{background:rgba(232,114,154,.85);color:#fff}
+
+/* ============================================================
+   PC・タブレット向けレイアウト（画面幅700px以上）
+   スマホは従来通りの表示のまま、広い画面だけ最適化されます
+============================================================ */
+@media (min-width:700px){
+  html,body{overflow:auto}
+  body{display:flex;justify-content:center;align-items:flex-start;background:var(--bg3);min-height:100vh;padding:24px 0}
+  #app{
+    max-width:1080px;
+    width:calc(100% - 48px);
+    height:calc(100dvh - 48px);
+    border-radius:16px;
+    box-shadow:0 8px 32px rgba(58,74,56,.14);
+    border:0.5px solid var(--br);
+  }
+  .hdr{border-radius:16px 16px 0 0}
+  .bottom-nav{border-radius:0 0 16px 16px}
+
+  /* カードグリッドは画面幅に応じて自動で列数が増える */
+  .costume-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  #repWrap [style*="grid-template-columns:repeat(2,1fr)"],
+  #usageList [style*="grid-template-columns:repeat(2,1fr)"]{
+    grid-template-columns:repeat(auto-fill,minmax(190px,1fr)) !important;
+  }
+
+  /* モーダルは画面下からではなく中央にポップアップ表示 */
+  .modal-overlay{align-items:center;padding:20px}
+  .modal{border-radius:16px;width:100%;max-width:480px;max-height:80vh}
+
+  /* FABボタン・トーストはアプリ枠内の右下基準に調整 */
+  .fab{bottom:calc(var(--nav-h) + 20px);right:20px}
+}
+
+/* さらに広い画面（大型モニターなど）は少し余裕を持たせる */
+@media (min-width:1300px){
+  #app{max-width:1200px}
+}
 </style>
 </head>
 <body>
