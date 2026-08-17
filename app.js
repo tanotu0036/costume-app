@@ -1239,6 +1239,19 @@ function renderSettings(body){
         <button class="btn-primary" id="btnOpenLabelPrint" style="background:var(--gr)"><i class="ti ti-printer"></i>ラベルを作成</button>
       </div>
 
+      <div class="section"><div class="section-title"><i class="ti ti-users"></i>職員名マスタ</div></div>
+      <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px">使用表明時のプルダウン候補を園ごとに管理できます</div>
+      <div class="card" style="padding:10px 12px" id="staffMasterCard">
+        <div class="chip-grid" id="staffGardenChips" style="margin-bottom:10px">
+          ${GARDENS.map((g,i)=>`<button class="chip ${i===0?'on':''}" data-sg="${g}">${g}</button>`).join('')}
+        </div>
+        <div id="staffListWrap"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="staffNameInput" placeholder="職員名を入力" style="flex:1;height:36px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none">
+          <button id="btnAddStaff" style="height:36px;padding:0 14px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-plus"></i></button>
+        </div>
+      </div>
+
       <div class="section"><div class="section-title"><i class="ti ti-restore"></i>削除済み衣装</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">削除した衣装を復活させることができます</div>
@@ -1352,6 +1365,57 @@ function renderSettings(body){
     }catch(e){toast('保存失敗: '+e.message);}
   };
   document.getElementById('btnShowDeleted').onclick=openDeletedCostumesModal;
+
+  // 職員名マスタ
+  const getStaff=g=>JSON.parse(localStorage.getItem('staff_'+g+'_local')||'[]');
+  const saveStaff=(g,list)=>localStorage.setItem('staff_'+g+'_local',JSON.stringify(list));
+  let staffGarden=GARDENS[0];
+
+  const renderStaffList=()=>{
+    const list=getStaff(staffGarden);
+    const wrap=document.getElementById('staffListWrap');
+    if(!wrap)return;
+    if(!list.length){
+      wrap.innerHTML=`<div style="font-size:12px;color:var(--tx3);padding:4px 0">登録された職員名はありません</div>`;
+      return;
+    }
+    wrap.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">${list.map(n=>`
+      <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:0.5px solid var(--br);border-radius:20px;padding:3px 10px 3px 12px;font-size:12px">
+        <span>${esc(n)}</span>
+        <button data-del-staff="${esc(n)}" style="width:18px;height:18px;border-radius:50%;border:none;background:var(--tx3);color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-x"></i></button>
+      </div>`).join('')}</div>`;
+    wrap.querySelectorAll('[data-del-staff]').forEach(btn=>{
+      btn.onclick=()=>{
+        const name=btn.dataset.delStaff;
+        const updated=getStaff(staffGarden).filter(n=>n!==name);
+        saveStaff(staffGarden,updated);
+        renderStaffList();
+      };
+    });
+  };
+
+  document.getElementById('staffGardenChips').querySelectorAll('.chip').forEach(b=>{
+    b.onclick=()=>{
+      document.getElementById('staffGardenChips').querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      staffGarden=b.dataset.sg;
+      document.getElementById('staffNameInput').value='';
+      renderStaffList();
+    };
+  });
+
+  document.getElementById('btnAddStaff').onclick=()=>{
+    const name=document.getElementById('staffNameInput').value.trim();
+    if(!name){toast('職員名を入力してください');return;}
+    const list=getStaff(staffGarden);
+    if(list.includes(name)){toast('すでに登録されています');return;}
+    saveStaff(staffGarden,[...list,name]);
+    document.getElementById('staffNameInput').value='';
+    renderStaffList();
+    toast(`${staffGarden}に「${name}」を追加しました`);
+  };
+  document.getElementById('staffNameInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('btnAddStaff').click();};
+  renderStaffList();
   document.getElementById('btnSaveS').onclick=async()=>{
     const btn=document.getElementById('btnSaveS');
     setBtn(btn,'<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 保存中...',true);
@@ -2029,8 +2093,9 @@ function openDeclarationModal(costumeId){
           }catch(e2){btn.disabled=false;btn.textContent='表明する';toast('登録失敗: '+e2.message);}
         };
         // 毎回名前入力ダイアログを表示（同じ端末で複数人が使う場合を考慮）
-        // 過去に使った名前をlocalStorageから取得
-        const pastNames=JSON.parse(localStorage.getItem('declNames_local')||'[]');
+        // その園のマスタ職員名を取得（なければ過去の入力履歴にフォールバック）
+        const staffMaster=JSON.parse(localStorage.getItem('staff_'+g+'_local')||'[]');
+        const pastNames=staffMaster.length?staffMaster:JSON.parse(localStorage.getItem('declNames_local')||'[]');
         const nameWrap=document.createElement('div');
         nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
         nameWrap.innerHTML=`
@@ -2039,7 +2104,7 @@ function openDeclarationModal(costumeId){
             <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">${g}園・${c.衣装名||''}の使用表明者</div>
             ${pastNames.length?`
             <div style="margin-bottom:8px">
-              <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">最近使った名前から選ぶ</div>
+              <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">職員名から選ぶ</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px" id="nameChips">
                 ${pastNames.map(n=>`<button class="name-chip" data-n="${n}" style="height:30px;padding:0 12px;border-radius:15px;border:0.5px solid var(--gr-b);background:var(--gr-l);color:var(--gr2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${n}</button>`).join('')}
               </div>
@@ -2064,9 +2129,11 @@ function openDeclarationModal(costumeId){
         document.getElementById('nameDialogOk').onclick=()=>{
           const name=document.getElementById('nameDialogInput').value.trim();
           if(!name){toast('名前を入力してください');return;}
-          // 使った名前を保存（最大10件、重複除外）
-          const updated=[name,...pastNames.filter(n=>n!==name)].slice(0,10);
-          localStorage.setItem('declNames_local',JSON.stringify(updated));
+          // マスタ未登録の場合のみ入力履歴に保存（最大10件、重複除外）
+          if(!staffMaster.length){
+            const updated=[name,...JSON.parse(localStorage.getItem('declNames_local')||'[]').filter(n=>n!==name)].slice(0,10);
+            localStorage.setItem('declNames_local',JSON.stringify(updated));
+          }
           nameWrap.remove();
           doDecl(name);
         };
