@@ -15,6 +15,7 @@ const S = {
   curCostume:null, curRep:null,
   loaded:false, listMode:'grid', // 'grid' or 'list'
   scheduleConflictOnly:false,
+  staffMap:{'西新':[],'原':[],'たの津':[],'ちくし野':[]},
 };
 const GARDENS=['西新','原','たの津','ちくし野'];
 const CATS=['オールインワン','パンツ','トップス','スカート','頭飾り','その他'];
@@ -95,6 +96,7 @@ function applyData(d){
   S.declarations=(d.declarations||[]).filter(r=>String(r.取消フラグ)!=='1');
   S.happiouDates=d.happiouDates||{};
   S.settings=d.settings||{};
+  S.staffMap=d.staffMap||{'西新':[],'原':[],'たの津':[],'ちくし野':[]};
   // マイ園・表示順は端末ローカル設定（localStorage）を優先。なければデフォルト
   const localMy=localStorage.getItem('myGarden_local');
   const localOrder=localStorage.getItem('gardenOrder_local');
@@ -1366,32 +1368,38 @@ function renderSettings(body){
   };
   document.getElementById('btnShowDeleted').onclick=openDeletedCostumesModal;
 
-  // 職員名マスタ
-  const getStaff=g=>JSON.parse(localStorage.getItem('staff_'+g+'_local')||'[]');
-  const saveStaff=(g,list)=>localStorage.setItem('staff_'+g+'_local',JSON.stringify(list));
+  // 職員名マスタ（GAS経由で全端末共有）
   let staffGarden=GARDENS[0];
 
   const renderStaffList=()=>{
-    const list=getStaff(staffGarden);
+    const list=S.staffMap[staffGarden]||[];
     const wrap=document.getElementById('staffListWrap');
     if(!wrap)return;
     if(!list.length){
       wrap.innerHTML=`<div style="font-size:12px;color:var(--tx3);padding:8px 0 4px">登録された職員名はありません</div>`;
       return;
     }
-    wrap.innerHTML=`<div style="border:0.5px solid var(--br);border-radius:var(--r-sm);overflow:hidden;margin-bottom:2px">${list.map(n=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br);background:var(--bg2)">
+    // idが必要なのでstaffMapにはidも保持（GASから受け取る形式に変更済み）
+    wrap.innerHTML=`<div style="border:0.5px solid var(--br);border-radius:var(--r-sm);overflow:hidden;margin-bottom:2px">${list.map(item=>{
+      const name=typeof item==='string'?item:item.職員名;
+      const id=typeof item==='string'?'':item.id;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br);background:var(--bg2)">
         <i class="ti ti-user" style="font-size:15px;color:var(--gr);flex-shrink:0"></i>
-        <span style="flex:1;font-size:13px">${esc(n)}</span>
-        <button data-del-staff="${esc(n)}" style="width:32px;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg3);color:var(--tx3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-trash"></i></button>
-      </div>`).join('')}</div>`;
-    wrap.querySelectorAll('[data-del-staff]').forEach(btn=>{
-      btn.onclick=()=>{
-        const name=btn.dataset.delStaff;
-        const updated=getStaff(staffGarden).filter(n=>n!==name);
-        saveStaff(staffGarden,updated);
-        renderStaffList();
-        toast(`「${name}」を削除しました`);
+        <span style="flex:1;font-size:13px">${esc(name)}</span>
+        <button data-del-staff-id="${esc(id)}" data-del-staff-name="${esc(name)}" style="width:32px;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg3);color:var(--tx3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-trash"></i></button>
+      </div>`;
+    }).join('')}</div>`;
+    wrap.querySelectorAll('[data-del-staff-id]').forEach(btn=>{
+      btn.onclick=async()=>{
+        const id=btn.dataset.delStaffId;
+        const name=btn.dataset.delStaffName;
+        btn.disabled=true;
+        try{
+          await api('deleteStaff',{id});
+          S.staffMap[staffGarden]=(S.staffMap[staffGarden]||[]).filter(item=>(typeof item==='string'?item:item.id)!==id);
+          renderStaffList();
+          toast(`「${name}」を削除しました`);
+        }catch(e){toast('削除失敗: '+e.message);}
       };
     });
   };
@@ -1406,15 +1414,22 @@ function renderSettings(body){
     };
   });
 
-  document.getElementById('btnAddStaff').onclick=()=>{
+  document.getElementById('btnAddStaff').onclick=async()=>{
     const name=document.getElementById('staffNameInput').value.trim();
     if(!name){toast('職員名を入力してください');return;}
-    const list=getStaff(staffGarden);
-    if(list.includes(name)){toast('すでに登録されています');return;}
-    saveStaff(staffGarden,[...list,name]);
-    document.getElementById('staffNameInput').value='';
-    renderStaffList();
-    toast(`${staffGarden}に「${name}」を追加しました`);
+    const list=S.staffMap[staffGarden]||[];
+    const names=list.map(item=>typeof item==='string'?item:item.職員名);
+    if(names.includes(name)){toast('すでに登録されています');return;}
+    const btn=document.getElementById('btnAddStaff');
+    btn.disabled=true;
+    try{
+      const res=await api('addStaff',{園:staffGarden,職員名:name});
+      if(!S.staffMap[staffGarden])S.staffMap[staffGarden]=[];
+      S.staffMap[staffGarden].push({id:res.id,職員名:name});
+      document.getElementById('staffNameInput').value='';
+      renderStaffList();
+      toast(`${staffGarden}に「${name}」を追加しました`);
+    }catch(e){toast('追加失敗: '+e.message);}finally{btn.disabled=false;}
   };
   document.getElementById('staffNameInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('btnAddStaff').click();};
   renderStaffList();
@@ -2095,8 +2110,9 @@ function openDeclarationModal(costumeId){
           }catch(e2){btn.disabled=false;btn.textContent='表明する';toast('登録失敗: '+e2.message);}
         };
         // 毎回名前入力ダイアログを表示（同じ端末で複数人が使う場合を考慮）
-        // その園のマスタ職員名を取得（なければ過去の入力履歴にフォールバック）
-        const staffMaster=JSON.parse(localStorage.getItem('staff_'+g+'_local')||'[]');
+        // その園のマスタ職員名をS.staffMapから取得（全端末共有）
+        const staffMasterRaw=S.staffMap[g]||[];
+        const staffMaster=staffMasterRaw.map(item=>typeof item==='string'?item:item.職員名);
         const pastNames=staffMaster.length?staffMaster:JSON.parse(localStorage.getItem('declNames_local')||'[]');
         const nameWrap=document.createElement('div');
         nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -2128,13 +2144,17 @@ function openDeclarationModal(costumeId){
         });
         setTimeout(()=>!pastNames.length&&document.getElementById('nameDialogInput')?.focus(),50);
         document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
-        document.getElementById('nameDialogOk').onclick=()=>{
+        document.getElementById('nameDialogOk').onclick=async()=>{
           const name=document.getElementById('nameDialogInput').value.trim();
           if(!name){toast('名前を入力してください');return;}
-          // 直接入力した場合はその園のマスタに自動追加
-          const currentMaster=JSON.parse(localStorage.getItem('staff_'+g+'_local')||'[]');
-          if(!currentMaster.includes(name)){
-            localStorage.setItem('staff_'+g+'_local',JSON.stringify([...currentMaster,name]));
+          // 直接入力した場合はGASのマスタに自動追加
+          const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:item.職員名);
+          if(!currentNames.includes(name)){
+            try{
+              const res=await api('addStaff',{園:g,職員名:name});
+              if(!S.staffMap[g])S.staffMap[g]=[];
+              S.staffMap[g].push({id:res.id,職員名:name});
+            }catch(e){console.warn('マスタ自動追加失敗:',e);}
           }
           nameWrap.remove();
           doDecl(name);
