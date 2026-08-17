@@ -2018,6 +2018,15 @@ function renderScheduleTable(year){
           const decl=S.declarations.find(d=>d.id===declId);
           if(decl) decl.担当者=newName;
           saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          // マスタに未登録の名前なら自動追加
+          const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:(item.職員名||''));
+          if(!currentNames.includes(newName)){
+            try{
+              const res=await api('addStaff',{園:g,職員名:newName});
+              if(!S.staffMap[g])S.staffMap[g]=[];
+              S.staffMap[g].push({id:res.id,職員名:newName});
+            }catch(e3){console.warn('マスタ自動追加失敗:',e3);}
+          }
           ov.remove();
           renderScheduleTable(year);
           toast('担当者名を変更しました');
