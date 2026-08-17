@@ -1381,8 +1381,8 @@ function renderSettings(body){
     }
     // idが必要なのでstaffMapにはidも保持（GASから受け取る形式に変更済み）
     wrap.innerHTML=`<div style="border:0.5px solid var(--br);border-radius:var(--r-sm);overflow:hidden;margin-bottom:2px">${list.map(item=>{
-      const name=typeof item==='string'?item:item.職員名;
-      const id=typeof item==='string'?'':item.id;
+      const name=typeof item==='string'?item:(item.職員名||'');
+      const id=typeof item==='string'?'':String(item.id||'');
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br);background:var(--bg2)">
         <i class="ti ti-user" style="font-size:15px;color:var(--gr);flex-shrink:0"></i>
         <span style="flex:1;font-size:13px">${esc(name)}</span>
@@ -1396,7 +1396,7 @@ function renderSettings(body){
         btn.disabled=true;
         try{
           await api('deleteStaff',{id});
-          S.staffMap[staffGarden]=(S.staffMap[staffGarden]||[]).filter(item=>(typeof item==='string'?item:item.id)!==id);
+          S.staffMap[staffGarden]=(S.staffMap[staffGarden]||[]).filter(item=>String(typeof item==='string'?'':item.id)!==id);
           renderStaffList();
           toast(`「${name}」を削除しました`);
         }catch(e){toast('削除失敗: '+e.message);}
@@ -1955,7 +1955,10 @@ function renderScheduleTable(year){
                     ${d?`
                       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
                         <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}${d.担当者?` ${d.担当者}`:''}</span>
-                        <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
+                        <div style="display:flex;gap:6px;align-items:center">
+                          <button data-edit-decl="${d.id}" data-edit-decl-g="${g}" data-edit-decl-name="${esc(d.担当者||'')}" style="font-size:9px;color:var(--gr);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">編集</button>
+                          <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
+                        </div>
                       </div>
                     `:`<span style="color:var(--br2);font-size:16px">—</span>`}
                   </td>`;
@@ -1969,6 +1972,59 @@ function renderScheduleTable(year){
   // 衣装詳細に飛ぶ
   wrap.querySelectorAll('[data-open-costume]').forEach(el=>{
     el.onclick=()=>openCostumeDetail(el.dataset.openCostume);
+  });
+
+  // 担当者名編集
+  wrap.querySelectorAll('[data-edit-decl]').forEach(btn=>{
+    btn.onclick=async(e)=>{
+      e.stopPropagation();
+      const declId=btn.dataset.editDecl;
+      const g=btn.dataset.editDeclG;
+      const currentName=btn.dataset.editDeclName;
+      // その園のマスタ職員名を取得
+      const staffMasterRaw=(S.staffMap[g]||[]);
+      const staffMaster=staffMasterRaw.map(item=>typeof item==='string'?item:(item.職員名||'')).filter(Boolean);
+      // 編集ダイアログ
+      const ov=document.createElement('div');
+      ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
+      ov.innerHTML=`
+        <div style="background:var(--bg2);border-radius:14px;padding:20px;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px"><i class="ti ti-user" style="font-size:14px;color:var(--gr)"></i> 使用表明者を変更</div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">${g}園の担当者名</div>
+          ${staffMaster.length?`
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="editNameChips">
+            ${staffMaster.map(n=>`<button class="edit-name-chip" data-n="${n}" style="height:30px;padding:0 12px;border-radius:15px;border:0.5px solid ${n===currentName?'var(--gr)':'var(--gr-b)'};background:${n===currentName?'var(--gr)':'var(--gr-l)'};color:${n===currentName?'#fff':'var(--gr2)'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${n}</button>`).join('')}
+          </div>`:''}
+          <input id="editNameInput" value="${currentName}" placeholder="または直接入力…" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
+          <div style="display:flex;gap:8px">
+            <button id="editNameCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
+            <button id="editNameOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">保存する</button>
+          </div>
+        </div>`;
+      document.body.appendChild(ov);
+      ov.querySelectorAll('.edit-name-chip').forEach(chip=>{
+        chip.onclick=()=>{
+          ov.querySelectorAll('.edit-name-chip').forEach(c=>{c.style.background='var(--gr-l)';c.style.color='var(--gr2)';c.style.borderColor='var(--gr-b)';});
+          chip.style.background='var(--gr)';chip.style.color='#fff';chip.style.borderColor='var(--gr)';
+          document.getElementById('editNameInput').value=chip.dataset.n;
+        };
+      });
+      document.getElementById('editNameCancel').onclick=()=>ov.remove();
+      document.getElementById('editNameOk').onclick=async()=>{
+        const newName=document.getElementById('editNameInput').value.trim();
+        if(!newName){toast('名前を入力してください');return;}
+        try{
+          await api('updateDeclaration',{id:declId,担当者:newName});
+          const decl=S.declarations.find(d=>d.id===declId);
+          if(decl) decl.担当者=newName;
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          ov.remove();
+          renderScheduleTable(year);
+          toast('担当者名を変更しました');
+        }catch(e2){toast('変更失敗: '+e2.message);}
+      };
+      document.getElementById('editNameInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('editNameOk').click();};
+    };
   });
 
   // 表明取消
@@ -2110,10 +2166,10 @@ function openDeclarationModal(costumeId){
           }catch(e2){btn.disabled=false;btn.textContent='表明する';toast('登録失敗: '+e2.message);}
         };
         // 毎回名前入力ダイアログを表示（同じ端末で複数人が使う場合を考慮）
-        // その園のマスタ職員名をS.staffMapから取得（全端末共有）
-        const staffMasterRaw=S.staffMap[g]||[];
-        const staffMaster=staffMasterRaw.map(item=>typeof item==='string'?item:item.職員名);
-        const pastNames=staffMaster.length?staffMaster:JSON.parse(localStorage.getItem('declNames_local')||'[]');
+        // その園のマスタ職員名をS.staffMapから取得（全端末共有・オブジェクト配列）
+        const staffMasterRaw=(S.staffMap[g]||[]);
+        const staffMaster=staffMasterRaw.map(item=>typeof item==='string'?item:item.職員名).filter(Boolean);
+        const pastNames=staffMaster;
         const nameWrap=document.createElement('div');
         nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
         nameWrap.innerHTML=`
@@ -2148,7 +2204,7 @@ function openDeclarationModal(costumeId){
           const name=document.getElementById('nameDialogInput').value.trim();
           if(!name){toast('名前を入力してください');return;}
           // 直接入力した場合はGASのマスタに自動追加
-          const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:item.職員名);
+          const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:(item.職員名||''));
           if(!currentNames.includes(name)){
             try{
               const res=await api('addStaff',{園:g,職員名:name});
