@@ -1987,7 +1987,8 @@ function renderScheduleTable(year){
                   return `<td style="text-align:center;padding:6px 4px;vertical-align:middle">
                     ${d?`
                       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                        <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}${d.担当者?` ${d.担当者}`:''}</span>
+                        <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}</span>
+                        ${d.担当者?`<span style="font-size:9px;color:var(--tx2);font-weight:500">${d.担当者}</span>`:''}
                         <div style="display:flex;gap:6px;align-items:center">
                           <button data-edit-decl="${d.id}" data-edit-decl-g="${g}" data-edit-decl-name="${esc(d.担当者||'')}" style="font-size:9px;color:var(--gr);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">編集</button>
                           <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
