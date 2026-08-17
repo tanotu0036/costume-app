@@ -1376,13 +1376,14 @@ function renderSettings(body){
     const wrap=document.getElementById('staffListWrap');
     if(!wrap)return;
     if(!list.length){
-      wrap.innerHTML=`<div style="font-size:12px;color:var(--tx3);padding:4px 0">登録された職員名はありません</div>`;
+      wrap.innerHTML=`<div style="font-size:12px;color:var(--tx3);padding:8px 0 4px">登録された職員名はありません</div>`;
       return;
     }
-    wrap.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">${list.map(n=>`
-      <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:0.5px solid var(--br);border-radius:20px;padding:3px 10px 3px 12px;font-size:12px">
-        <span>${esc(n)}</span>
-        <button data-del-staff="${esc(n)}" style="width:18px;height:18px;border-radius:50%;border:none;background:var(--tx3);color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-x"></i></button>
+    wrap.innerHTML=`<div style="border:0.5px solid var(--br);border-radius:var(--r-sm);overflow:hidden;margin-bottom:2px">${list.map(n=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br);background:var(--bg2)">
+        <i class="ti ti-user" style="font-size:15px;color:var(--gr);flex-shrink:0"></i>
+        <span style="flex:1;font-size:13px">${esc(n)}</span>
+        <button data-del-staff="${esc(n)}" style="width:32px;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg3);color:var(--tx3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-trash"></i></button>
       </div>`).join('')}</div>`;
     wrap.querySelectorAll('[data-del-staff]').forEach(btn=>{
       btn.onclick=()=>{
@@ -1390,6 +1391,7 @@ function renderSettings(body){
         const updated=getStaff(staffGarden).filter(n=>n!==name);
         saveStaff(staffGarden,updated);
         renderStaffList();
+        toast(`「${name}」を削除しました`);
       };
     });
   };
@@ -2129,10 +2131,10 @@ function openDeclarationModal(costumeId){
         document.getElementById('nameDialogOk').onclick=()=>{
           const name=document.getElementById('nameDialogInput').value.trim();
           if(!name){toast('名前を入力してください');return;}
-          // マスタ未登録の場合のみ入力履歴に保存（最大10件、重複除外）
-          if(!staffMaster.length){
-            const updated=[name,...JSON.parse(localStorage.getItem('declNames_local')||'[]').filter(n=>n!==name)].slice(0,10);
-            localStorage.setItem('declNames_local',JSON.stringify(updated));
+          // 直接入力した場合はその園のマスタに自動追加
+          const currentMaster=JSON.parse(localStorage.getItem('staff_'+g+'_local')||'[]');
+          if(!currentMaster.includes(name)){
+            localStorage.setItem('staff_'+g+'_local',JSON.stringify([...currentMaster,name]));
           }
           nameWrap.remove();
           doDecl(name);
