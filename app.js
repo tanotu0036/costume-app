@@ -295,7 +295,7 @@ function renderCostumes(body){
       const pc=c.写真枚数>1?`<div class="pcount"><i class="ti ti-camera" style="font-size:10px"></i>${c.写真枚数}</div>`:'';
       return `<div class="costume-card" data-id="${c.id}">
         <div class="costume-img"><div class="sdot ${dot}"></div>${img}${pc}</div>
-        <div class="costume-meta"><div class="costume-code">${esc(c.衣装ID)}</div><div class="costume-name">${esc(c.衣装名)||'（名称未設定）'}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px"><div class="costume-loc" style="margin-top:0"><i class="ti ti-map-pin"></i>${esc(c.保管場所)}</div>${ageBadge(c.対象年齢)}</div></div>
+        <div class="costume-meta"><div class="costume-code">${esc(c.衣装ID)}</div><div class="costume-name">${esc(c.衣装名)||'（名称未設定）'}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px"><div class="costume-loc" style="margin-top:0"><i class="ti ti-map-pin"></i>${esc(c.移動先||c.保管場所)}</div>${ageBadge(c.対象年齢)}</div></div>
       </div>`;
     }).join('')}</div>`;
   }else{
@@ -310,7 +310,7 @@ function renderCostumes(body){
           <div style="font-size:13px;font-weight:500;margin-bottom:3px">${esc(c.衣装名)||'（名称未設定）'}</div>
           <div style="font-size:11px;color:var(--tx2);display:flex;gap:8px;flex-wrap:wrap">
             ${sBadge(c.状態)}
-            <span><i class="ti ti-map-pin" style="font-size:11px"></i>${esc(c.保管場所)}</span>
+            <span><i class="ti ti-map-pin" style="font-size:11px"></i>${esc(c.移動先||c.保管場所)}</span>
             ${c.写真枚数?`<span><i class="ti ti-camera" style="font-size:11px"></i>${c.写真枚数}枚</span>`:''}
           </div>
           ${c.メモ?`<div style="font-size:11px;color:var(--tx3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.メモ)}</div>`:''}
@@ -360,16 +360,26 @@ function renderCostumeDetail(body){
         ${mainPhoto?.URL?`<img src="${esc(mainPhoto.URL)}" alt="">`:'<i class="ti ti-hanger"></i>'}
       </div>
       <div class="thumb-row" id="thumbRow"></div>
-      <div class="section"><div class="section-title"><i class="ti ti-info-circle"></i>基本情報</div></div>
-      <div class="card">
-        ${rowHTML('衣装ID',esc(c.衣装ID))}${rowHTML('カテゴリー',esc(c.カテゴリー))}${rowHTML('対象年齢',ageBadge(c.対象年齢,'3px 10px','12px'))}${rowHTML('衣装名',esc(c.衣装名)||'（未設定）')}${rowHTML('個数',c.個数?esc(c.個数)+'着':'')}${rowHTML('製作園',esc(c.製作園))}${rowHTML('メモ',esc(c.メモ))}
-      </div>
       <div class="section"><div class="section-title"><i class="ti ti-building-warehouse"></i>保管・状態</div></div>
-      <div class="card">${rowHTML('保管場所',esc(c.保管場所))}${rowHTML('移動先',esc(c.移動先)||'（どこにある？）')}${rowHTML('状態',sBadge(c.状態))}</div>
+      <div class="card">
+        ${rowHTML('保管場所',esc(c.保管場所))}
+        <div class="row">
+          <span class="row-label">移動先</span>
+          <select id="inlineDestSel" style="height:30px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 8px;font-size:13px;font-family:inherit;background:var(--bg2);color:var(--tx);outline:none;max-width:62%">
+            <option value="">（未設定）</option>
+            ${['西新','原','たの津','ちくし野','原倉庫','たの津倉庫'].map(l=>`<option value="${l}" ${c.移動先===l?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        ${rowHTML('状態',sBadge(c.状態))}
+      </div>
       <div class="section"><div class="section-title"><i class="ti ti-calendar-event"></i>使用予定</div></div>
       <div class="card" style="padding:10px 12px">
         <div id="declBadges" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
         <button class="btn-sub" id="btnDeclare" style="font-size:12px"><i class="ti ti-plus"></i>使用表明する</button>
+      </div>
+      <div class="section"><div class="section-title"><i class="ti ti-info-circle"></i>基本情報</div></div>
+      <div class="card">
+        ${rowHTML('衣装ID',esc(c.衣装ID))}${rowHTML('カテゴリー',esc(c.カテゴリー))}${rowHTML('対象年齢',ageBadge(c.対象年齢,'3px 10px','12px'))}${rowHTML('衣装名',esc(c.衣装名)||'（未設定）')}${rowHTML('個数',c.個数?esc(c.個数)+'着':'')}${rowHTML('製作園',esc(c.製作園))}${rowHTML('メモ',esc(c.メモ))}
       </div>
       <div class="section"><div class="section-title"><i class="ti ti-history"></i>使用履歴</div></div>
       <div class="card" style="padding:0"><div class="timeline" id="histList"></div></div>
@@ -424,6 +434,22 @@ function renderCostumeDetail(body){
     }
   }
   document.getElementById('btnDeclare').onclick=()=>openDeclarationModal(c.id);
+
+  // 移動先インライン変更
+  const inlineDest=document.getElementById('inlineDestSel');
+  if(inlineDest){
+    inlineDest.onchange=async()=>{
+      const newDest=inlineDest.value;
+      inlineDest.disabled=true;
+      try{
+        await CostumeAPI.update({id:c.id,移動先:newDest});
+        localUpdateCostume(c.id,{移動先:newDest});
+        S.curCostume.移動先=newDest;
+        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+        toast('移動先を更新しました');
+      }catch(e){toast('更新失敗: '+e.message);}finally{inlineDest.disabled=false;}
+    };
+  }
 }
 
 function rowHTML(l,v){return `<div class="row"><span class="row-label">${l}</span><span class="row-value">${v||''}</span></div>`;}
@@ -1944,6 +1970,13 @@ function renderScheduleTable(year){
                       ${isConflict?`<span style="font-size:9px;color:#A32D2D"><i class="ti ti-alert-triangle" style="font-size:9px"></i> 競合</span>`:''}
                     </div>
                   </div>
+                  <div style="margin-top:5px;display:flex;align-items:center;gap:4px">
+                    <i class="ti ti-map-pin" style="font-size:10px;color:var(--tx3);flex-shrink:0"></i>
+                    <select data-dest-cid="${c.id}" style="flex:1;height:26px;border:0.5px solid var(--br2);border-radius:4px;padding:0 4px;font-size:10px;font-family:inherit;background:var(--bg2);color:var(--tx);outline:none;max-width:120px">
+                      <option value="">未設定</option>
+                      ${['西新','原','たの津','ちくし野','原倉庫','たの津倉庫'].map(l=>`<option value="${l}" ${c.移動先===l?'selected':''}>${l}</option>`).join('')}
+                    </select>
+                  </div>
                   <button data-link-decl="${c.id}" style="margin-top:4px;font-size:10px;color:var(--gr);background:var(--gr-l);border:0.5px solid var(--gr-b);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;display:block">
                     <i class="ti ti-link" style="font-size:10px"></i> 演目に紐づける
                   </button>
@@ -1968,6 +2001,23 @@ function renderScheduleTable(year){
         </tbody>
       </table>
     </div>`;
+
+  // 移動先プルダウン変更
+  wrap.querySelectorAll('[data-dest-cid]').forEach(sel=>{
+    sel.onchange=async()=>{
+      const cid=sel.dataset.destCid;
+      const newDest=sel.value;
+      sel.disabled=true;
+      try{
+        await CostumeAPI.update({id:cid,移動先:newDest});
+        localUpdateCostume(cid,{移動先:newDest});
+        const sc=S.costumes.find(x=>x.id===cid);
+        if(sc)sc.移動先=newDest;
+        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+        toast('移動先を更新しました');
+      }catch(e){toast('更新失敗: '+e.message);}finally{sel.disabled=false;}
+    };
+  });
 
   // 衣装詳細に飛ぶ
   wrap.querySelectorAll('[data-open-costume]').forEach(el=>{
