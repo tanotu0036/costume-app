@@ -2029,24 +2029,44 @@ function openDeclarationModal(costumeId){
           }catch(e2){btn.disabled=false;btn.textContent='表明する';toast('登録失敗: '+e2.message);}
         };
         // 毎回名前入力ダイアログを表示（同じ端末で複数人が使う場合を考慮）
+        // 過去に使った名前をlocalStorageから取得
+        const pastNames=JSON.parse(localStorage.getItem('declNames_local')||'[]');
         const nameWrap=document.createElement('div');
         nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
         nameWrap.innerHTML=`
           <div style="background:var(--bg2);border-radius:14px;padding:20px;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
             <div style="font-size:15px;font-weight:700;margin-bottom:6px"><i class="ti ti-user" style="font-size:14px;color:var(--gr)"></i> お名前を入力してください</div>
             <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">${g}園・${c.衣装名||''}の使用表明者</div>
-            <input id="nameDialogInput" placeholder="例：田中" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
+            ${pastNames.length?`
+            <div style="margin-bottom:8px">
+              <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">最近使った名前から選ぶ</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px" id="nameChips">
+                ${pastNames.map(n=>`<button class="name-chip" data-n="${n}" style="height:30px;padding:0 12px;border-radius:15px;border:0.5px solid var(--gr-b);background:var(--gr-l);color:var(--gr2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${n}</button>`).join('')}
+              </div>
+            </div>`:'' }
+            <input id="nameDialogInput" placeholder="または直接入力…" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
             <div style="display:flex;gap:8px">
               <button id="nameDialogCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
               <button id="nameDialogOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">表明する</button>
             </div>
           </div>`;
         document.body.appendChild(nameWrap);
-        setTimeout(()=>document.getElementById('nameDialogInput')?.focus(),50);
+        // 名前チップをタップしたらinputに入力
+        nameWrap.querySelectorAll('.name-chip').forEach(chip=>{
+          chip.onclick=()=>{
+            nameWrap.querySelectorAll('.name-chip').forEach(c=>c.style.background='var(--gr-l)');
+            chip.style.background='var(--gr)';chip.style.color='#fff';
+            document.getElementById('nameDialogInput').value=chip.dataset.n;
+          };
+        });
+        setTimeout(()=>!pastNames.length&&document.getElementById('nameDialogInput')?.focus(),50);
         document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
         document.getElementById('nameDialogOk').onclick=()=>{
           const name=document.getElementById('nameDialogInput').value.trim();
           if(!name){toast('名前を入力してください');return;}
+          // 使った名前を保存（最大10件、重複除外）
+          const updated=[name,...pastNames.filter(n=>n!==name)].slice(0,10);
+          localStorage.setItem('declNames_local',JSON.stringify(updated));
           nameWrap.remove();
           doDecl(name);
         };
