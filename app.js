@@ -2020,19 +2020,51 @@ function openDeclarationModal(costumeId){
     ov.querySelectorAll('[data-add-decl]').forEach(btn=>{
       btn.onclick=async()=>{
         const g=btn.dataset.addDecl;
-        btn.disabled=true;btn.textContent='登録中...';
-        try{
-          const myName=localStorage.getItem('myName_local')||'';
-          const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName});
-          const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,取消フラグ:''};
-          S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
-          S.declarations.push(newDecl);
-          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
-          toast(`${g}の使用表明を登録しました`);
-          closeModal();
-          // 詳細画面を再描画
-          renderCostumeDetail(document.getElementById('pageBody'));
-        }catch(e2){toast('登録失敗: '+e2.message);}
+        // 名前が未登録なら入力を促す、登録済みならそのまま表明
+        const savedName=localStorage.getItem('myName_local')||'';
+        const doDecl=async(myName)=>{
+          btn.disabled=true;btn.textContent='登録中...';
+          try{
+            const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName});
+            const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,取消フラグ:''};
+            S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
+            S.declarations.push(newDecl);
+            saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+            toast(`${g}の使用表明を登録しました`);
+            closeModal();
+            renderCostumeDetail(document.getElementById('pageBody'));
+          }catch(e2){btn.disabled=false;btn.textContent='表明する';toast('登録失敗: '+e2.message);}
+        };
+        if(savedName){
+          // 登録済みの名前でそのまま表明
+          doDecl(savedName);
+        }else{
+          // 名前入力ダイアログを表示
+          const nameWrap=document.createElement('div');
+          nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
+          nameWrap.innerHTML=`
+            <div style="background:var(--bg2);border-radius:14px;padding:20px;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+              <div style="font-size:15px;font-weight:700;margin-bottom:6px">お名前を入力してください</div>
+              <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">次回から自動で入力されます（設定タブで変更可）</div>
+              <input id="nameDialogInput" placeholder="例：田中" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
+              <div style="display:flex;gap:8px">
+                <button id="nameDialogCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
+                <button id="nameDialogOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">表明する</button>
+              </div>
+            </div>`;
+          document.body.appendChild(nameWrap);
+          setTimeout(()=>document.getElementById('nameDialogInput')?.focus(),50);
+          document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
+          document.getElementById('nameDialogOk').onclick=()=>{
+            const name=document.getElementById('nameDialogInput').value.trim();
+            if(!name){toast('名前を入力してください');return;}
+            localStorage.setItem('myName_local',name);
+            nameWrap.remove();
+            doDecl(name);
+          };
+          // Enterキーでも確定
+          document.getElementById('nameDialogInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('nameDialogOk').click();};
+        }
       };
     });
     // 表明取消
