@@ -2013,6 +2013,8 @@ function renderScheduleTable(year){
       document.getElementById('editNameOk').onclick=async()=>{
         const newName=document.getElementById('editNameInput').value.trim();
         if(!newName){toast('名前を入力してください');return;}
+        const editOkBtn=document.getElementById('editNameOk');
+        editOkBtn.disabled=true;editOkBtn.textContent='処理中...';
         try{
           await api('updateDeclaration',{id:declId,担当者:newName});
           const decl=S.declarations.find(d=>d.id===declId);
@@ -2030,7 +2032,7 @@ function renderScheduleTable(year){
           ov.remove();
           renderScheduleTable(year);
           toast('担当者名を変更しました');
-        }catch(e2){toast('変更失敗: '+e2.message);}
+        }catch(e2){editOkBtn.disabled=false;editOkBtn.textContent='保存する';toast('変更失敗: '+e2.message);}
       };
       document.getElementById('editNameInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('editNameOk').click();};
     };
@@ -2212,6 +2214,8 @@ function openDeclarationModal(costumeId){
         document.getElementById('nameDialogOk').onclick=async()=>{
           const name=document.getElementById('nameDialogInput').value.trim();
           if(!name){toast('名前を入力してください');return;}
+          const okBtn=document.getElementById('nameDialogOk');
+          okBtn.disabled=true;okBtn.textContent='処理中...';
           // 直接入力した場合はGASのマスタに自動追加
           const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:(item.職員名||''));
           if(!currentNames.includes(name)){
