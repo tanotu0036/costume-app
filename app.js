@@ -415,7 +415,8 @@ function renderCostumeDetail(body){
       declBadges.innerHTML=cDecls.map(d=>{
         const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[d.園]||'nishi';
         const dateStr=S.happiouDates[d.園]?` ${formatDate(S.happiouDates[d.園])}`:'';
-        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}</span>`;
+        const nameStr=d.担当者?` ${d.担当者}`:'';
+        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}${nameStr}</span>`;
       }).join('');
     }
   }
@@ -1211,7 +1212,13 @@ function renderSettings(body){
     <div style="flex:1;overflow-y:auto;padding-bottom:20px">
       <div class="section"><div class="section-title"><i class="ti ti-building"></i>マイ園設定</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px"><i class="ti ti-device-mobile" style="font-size:12px"></i> この端末だけの設定です（他の人には影響しません）</div>
-      <div class="card" style="padding:10px 12px"><div class="chip-grid" id="mgChips">${GARDENS.map(g=>`<button class="chip ${S.myGarden===g?'on':''}" data-g="${g}">${g}</button>`).join('')}</div></div>
+      <div class="card" style="padding:10px 12px">
+        <div class="field" style="margin-bottom:10px">
+          <div class="field-label"><i class="ti ti-user"></i>担当者名（使用表明時に表示されます）</div>
+          <input id="myNameInput" value="${esc(localStorage.getItem('myName_local')||'')}" placeholder="例：田中" style="width:100%;height:38px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--tx);outline:none">
+        </div>
+        <div class="chip-grid" id="mgChips">${GARDENS.map(g=>`<button class="chip ${S.myGarden===g?'on':''}" data-g="${g}">${g}</button>`).join('')}</div>
+      </div>
       <div class="section"><div class="section-title"><i class="ti ti-arrows-sort"></i>園の表示順</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px">マイ園が自動で先頭になります</div>
       <div style="padding:0 12px" id="orderList"></div>
@@ -1355,6 +1362,8 @@ function renderSettings(body){
       // この端末だけの設定として保存（他の人には影響しません）
       localStorage.setItem('myGarden_local',S.myGarden);
       localStorage.setItem('gardenOrder_local',S.gardenOrder.join(','));
+      const myNameVal=document.getElementById('myNameInput')?.value||'';
+      localStorage.setItem('myName_local',myNameVal);
       setBtn(btn,'<i class="ti ti-circle-check"></i> 保存完了！',false,'var(--gr2)');
       toast('この端末の設定を保存しました');
       setTimeout(()=>setBtn(btn,'<i class="ti ti-device-floppy"></i> 設定を保存',false,''),2000);
@@ -1760,13 +1769,21 @@ function renderSchedules(body){
   const gardens = ['全園',...GARDENS];
   const gardenPills = gardens.map(g=>`<button class="filter-pill ${(S.scheduleGarden||'全園')===g?'on':''}" data-sg="${g}">${g}</button>`).join('');
 
+  const conflictOnlyOn = S.scheduleConflictOnly||false;
+
   body.innerHTML=`
     <div class="filter-bar">${yearPills}</div>
     <div class="filter-bar">${gardenPills}</div>
+    <div class="filter-bar">
+      <button class="filter-pill ${conflictOnlyOn?'on':''}" id="btnConflictOnly" style="${conflictOnlyOn?'background:var(--rd);border-color:var(--rd);color:#fff':''}">
+        <i class="ti ti-alert-triangle" style="font-size:11px"></i> 競合のみ表示
+      </button>
+    </div>
     <div id="schWrap" style="flex:1;overflow-y:auto;padding:8px 12px"></div>`;
 
   body.querySelectorAll('[data-sy]').forEach(b=>b.onclick=()=>{S.scheduleYear=parseInt(b.dataset.sy);renderSchedules(body);});
   body.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{S.scheduleGarden=b.dataset.sg;renderSchedules(body);});
+  document.getElementById('btnConflictOnly').onclick=()=>{S.scheduleConflictOnly=!S.scheduleConflictOnly;renderSchedules(body);};
 
   renderScheduleTable(year);
 }
@@ -1784,6 +1801,9 @@ function renderScheduleTable(year){
   let costumes = S.costumes.filter(c=>costumeIds.includes(c.id));
   if(fGarden!=='全園') costumes=costumes.filter(c=>decls.some(d=>d.衣装id===c.id&&d.園===fGarden));
 
+  // 競合フィルターは後で conflicts確定後に適用するためフラグだけ保持
+  const conflictOnly = S.scheduleConflictOnly||false;
+
   // 競合チェック（同じ衣装を複数園が同日または隣接日に表明）
   const conflicts=new Set();
   costumeIds.forEach(cid=>{
@@ -1800,6 +1820,9 @@ function renderScheduleTable(year){
       }
     }
   });
+
+  // 競合フィルター適用
+  if(conflictOnly) costumes=costumes.filter(c=>conflicts.has(c.id));
 
   // 競合バナー
   const conflictHTML = conflicts.size>0 ? `
@@ -1862,7 +1885,7 @@ function renderScheduleTable(year){
                   return `<td style="text-align:center;padding:6px 4px;vertical-align:middle">
                     ${d?`
                       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                        <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}</span>
+                        <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}${d.担当者?` ${d.担当者}`:''}</span>
                         <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
                       </div>
                     `:`<span style="color:var(--br2);font-size:16px">—</span>`}
@@ -1989,7 +2012,7 @@ function openDeclarationModal(costumeId){
             <div>
               <span style="font-size:13px;font-weight:700;color:var(--tx)">${g}</span>
               <span style="font-size:11px;color:var(--tx3)">${dateStr}</span>
-              ${d?`<span style="font-size:10px;color:var(--gr);margin-left:6px"><i class="ti ti-check" style="font-size:10px"></i> 表明済</span>`:''}
+              ${d?`<span style="font-size:10px;color:var(--gr);margin-left:6px"><i class="ti ti-check" style="font-size:10px"></i> 表明済${d.担当者?' ('+d.担当者+')':''}</span>`:''}
             </div>
             ${d
               ?`<button data-cancel-decl="${d.id}" style="font-size:11px;color:var(--rd);background:var(--rd-l);border:0.5px solid var(--rd-b);border-radius:var(--r-sm);padding:3px 10px;cursor:pointer;font-family:inherit">取消</button>`
@@ -2005,8 +2028,9 @@ function openDeclarationModal(costumeId){
         const g=btn.dataset.addDecl;
         btn.disabled=true;btn.textContent='登録中...';
         try{
-          const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g});
-          const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,取消フラグ:''};
+          const myName=localStorage.getItem('myName_local')||'';
+          const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName});
+          const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,取消フラグ:''};
           S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
           S.declarations.push(newDecl);
           saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
