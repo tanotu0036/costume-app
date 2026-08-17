@@ -2207,10 +2207,17 @@ function openDeclarationModal(costumeId){
           const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:(item.職員名||''));
           if(!currentNames.includes(name)){
             try{
+              toast('マスタに追加中...',1500);
               const res=await api('addStaff',{園:g,職員名:name});
               if(!S.staffMap[g])S.staffMap[g]=[];
               S.staffMap[g].push({id:res.id,職員名:name});
-            }catch(e){console.warn('マスタ自動追加失敗:',e);}
+              toast(`${g}のマスタに「${name}」を追加しました`);
+            }catch(e){
+              toast('マスタ追加失敗: '+e.message,4000);
+              console.warn('マスタ自動追加失敗:',e);
+            }
+          }else{
+            toast(`「${name}」はすでにマスタにあります`);
           }
           nameWrap.remove();
           doDecl(name);
