@@ -14,6 +14,7 @@ const S = {
   fStatus:'', fCat:'', fAge:'', fYear:'', fGarden:'',
   curCostume:null, curRep:null,
   loaded:false, listMode:'grid', // 'grid' or 'list'
+  scheduleConflictOnly:false,
 };
 const GARDENS=['西新','原','たの津','ちくし野'];
 const CATS=['オールインワン','パンツ','トップス','スカート','頭飾り','その他'];
@@ -1208,6 +1209,7 @@ function confirmDeleteUsage(uid){
 //  設定
 // ============================================================
 function renderSettings(body){
+  const myNameStored=esc(localStorage.getItem('myName_local')||'');
   body.innerHTML=`
     <div style="flex:1;overflow-y:auto;padding-bottom:20px">
       <div class="section"><div class="section-title"><i class="ti ti-building"></i>マイ園設定</div></div>
@@ -1215,7 +1217,7 @@ function renderSettings(body){
       <div class="card" style="padding:10px 12px">
         <div class="field" style="margin-bottom:10px">
           <div class="field-label"><i class="ti ti-user"></i>担当者名（使用表明時に表示されます）</div>
-          <input id="myNameInput" value="${esc(localStorage.getItem('myName_local')||'')}" placeholder="例：田中" style="width:100%;height:38px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--tx);outline:none">
+          <input id="myNameInput" value="${myNameStored}" placeholder="例：田中" style="width:100%;height:38px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--tx);outline:none">
         </div>
         <div class="chip-grid" id="mgChips">${GARDENS.map(g=>`<button class="chip ${S.myGarden===g?'on':''}" data-g="${g}">${g}</button>`).join('')}</div>
       </div>
@@ -1804,21 +1806,13 @@ function renderScheduleTable(year){
   // 競合フィルターは後で conflicts確定後に適用するためフラグだけ保持
   const conflictOnly = S.scheduleConflictOnly||false;
 
-  // 競合チェック（同じ衣装を複数園が同日または隣接日に表明）
+  // 競合チェック（同じ衣装を複数の園が表明している＝競合）
   const conflicts=new Set();
   costumeIds.forEach(cid=>{
     const cDecls=decls.filter(d=>d.衣装id===cid);
-    if(cDecls.length>1){
-      const dates=cDecls.map(d=>S.happiouDates[d.園]).filter(Boolean);
-      if(dates.length>1){
-        // 日付の差が3日以内なら競合警告
-        const ms=dates.map(d=>new Date(d).getTime()).filter(t=>!isNaN(t));
-        ms.sort((a,b)=>a-b);
-        if(ms.length>1&&(ms[ms.length-1]-ms[0])<3*24*3600*1000) conflicts.add(cid);
-      } else {
-        conflicts.add(cid); // 日付未設定でも複数園表明なら警告
-      }
-    }
+    // 複数の異なる園が表明していれば競合
+    const gardens=[...new Set(cDecls.map(d=>d.園))];
+    if(gardens.length>1) conflicts.add(cid);
   });
 
   // 競合フィルター適用
