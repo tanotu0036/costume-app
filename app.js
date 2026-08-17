@@ -1209,16 +1209,11 @@ function confirmDeleteUsage(uid){
 //  設定
 // ============================================================
 function renderSettings(body){
-  const myNameStored=esc(localStorage.getItem('myName_local')||'');
   body.innerHTML=`
     <div style="flex:1;overflow-y:auto;padding-bottom:20px">
       <div class="section"><div class="section-title"><i class="ti ti-building"></i>マイ園設定</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px"><i class="ti ti-device-mobile" style="font-size:12px"></i> この端末だけの設定です（他の人には影響しません）</div>
       <div class="card" style="padding:10px 12px">
-        <div class="field" style="margin-bottom:10px">
-          <div class="field-label"><i class="ti ti-user"></i>担当者名（使用表明時に表示されます）</div>
-          <input id="myNameInput" value="${myNameStored}" placeholder="例：田中" style="width:100%;height:38px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg2);color:var(--tx);outline:none">
-        </div>
         <div class="chip-grid" id="mgChips">${GARDENS.map(g=>`<button class="chip ${S.myGarden===g?'on':''}" data-g="${g}">${g}</button>`).join('')}</div>
       </div>
       <div class="section"><div class="section-title"><i class="ti ti-arrows-sort"></i>園の表示順</div></div>
@@ -1364,8 +1359,6 @@ function renderSettings(body){
       // この端末だけの設定として保存（他の人には影響しません）
       localStorage.setItem('myGarden_local',S.myGarden);
       localStorage.setItem('gardenOrder_local',S.gardenOrder.join(','));
-      const myNameVal=document.getElementById('myNameInput')?.value||'';
-      localStorage.setItem('myName_local',myNameVal);
       setBtn(btn,'<i class="ti ti-circle-check"></i> 保存完了！',false,'var(--gr2)');
       toast('この端末の設定を保存しました');
       setTimeout(()=>setBtn(btn,'<i class="ti ti-device-floppy"></i> 設定を保存',false,''),2000);
@@ -1826,7 +1819,8 @@ function renderScheduleTable(year){
         ${[...conflicts].map(cid=>{
           const c=S.costumes.find(x=>x.id===cid);
           const cDecls=decls.filter(d=>d.衣装id===cid);
-          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>：${cDecls.map(d=>`${d.園}${S.happiouDates[d.園]?'（'+formatDate(S.happiouDates[d.園])+'）':''}`).join('・')}で使用予定`;
+          const sortedDecls=[...cDecls].sort((a,b)=>{const da=toDateInput(S.happiouDates[a.園]||'');const db=toDateInput(S.happiouDates[b.園]||'');if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;return da.localeCompare(db);});
+          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>：${sortedDecls.map(d=>`${d.園}${S.happiouDates[d.園]?'（'+formatDate(S.happiouDates[d.園])+'）':''}`).join('・')}で使用予定`;
         }).join('<br>')}
       </div>
     </div>`:'' ;
@@ -2021,7 +2015,6 @@ function openDeclarationModal(costumeId){
       btn.onclick=async()=>{
         const g=btn.dataset.addDecl;
         // 名前が未登録なら入力を促す、登録済みならそのまま表明
-        const savedName=localStorage.getItem('myName_local')||'';
         const doDecl=async(myName)=>{
           btn.disabled=true;btn.textContent='登録中...';
           try{
@@ -2035,36 +2028,29 @@ function openDeclarationModal(costumeId){
             renderCostumeDetail(document.getElementById('pageBody'));
           }catch(e2){btn.disabled=false;btn.textContent='表明する';toast('登録失敗: '+e2.message);}
         };
-        if(savedName){
-          // 登録済みの名前でそのまま表明
-          doDecl(savedName);
-        }else{
-          // 名前入力ダイアログを表示
-          const nameWrap=document.createElement('div');
-          nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
-          nameWrap.innerHTML=`
-            <div style="background:var(--bg2);border-radius:14px;padding:20px;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
-              <div style="font-size:15px;font-weight:700;margin-bottom:6px">お名前を入力してください</div>
-              <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">次回から自動で入力されます（設定タブで変更可）</div>
-              <input id="nameDialogInput" placeholder="例：田中" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
-              <div style="display:flex;gap:8px">
-                <button id="nameDialogCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
-                <button id="nameDialogOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">表明する</button>
-              </div>
-            </div>`;
-          document.body.appendChild(nameWrap);
-          setTimeout(()=>document.getElementById('nameDialogInput')?.focus(),50);
-          document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
-          document.getElementById('nameDialogOk').onclick=()=>{
-            const name=document.getElementById('nameDialogInput').value.trim();
-            if(!name){toast('名前を入力してください');return;}
-            localStorage.setItem('myName_local',name);
-            nameWrap.remove();
-            doDecl(name);
-          };
-          // Enterキーでも確定
-          document.getElementById('nameDialogInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('nameDialogOk').click();};
-        }
+        // 毎回名前入力ダイアログを表示（同じ端末で複数人が使う場合を考慮）
+        const nameWrap=document.createElement('div');
+        nameWrap.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px';
+        nameWrap.innerHTML=`
+          <div style="background:var(--bg2);border-radius:14px;padding:20px;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2)">
+            <div style="font-size:15px;font-weight:700;margin-bottom:6px"><i class="ti ti-user" style="font-size:14px;color:var(--gr)"></i> お名前を入力してください</div>
+            <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">${g}園・${c.衣装名||''}の使用表明者</div>
+            <input id="nameDialogInput" placeholder="例：田中" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
+            <div style="display:flex;gap:8px">
+              <button id="nameDialogCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
+              <button id="nameDialogOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">表明する</button>
+            </div>
+          </div>`;
+        document.body.appendChild(nameWrap);
+        setTimeout(()=>document.getElementById('nameDialogInput')?.focus(),50);
+        document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
+        document.getElementById('nameDialogOk').onclick=()=>{
+          const name=document.getElementById('nameDialogInput').value.trim();
+          if(!name){toast('名前を入力してください');return;}
+          nameWrap.remove();
+          doDecl(name);
+        };
+        document.getElementById('nameDialogInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('nameDialogOk').click();};
       };
     });
     // 表明取消
