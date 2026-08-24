@@ -1,110 +1,11 @@
-
-/
-Claudeが応答を完了しました
-
-10個のコマンドを実行しました · 6 ノート
-10個のコマンドを実行しました · 6 ノート
-ドキュメントのapp.jsの内容が正確に分かりましたので、直接変更内容をお伝えします。app.jsに対して以下5か所を手動で変更してください。
-
-変更① Sオブジェクト末尾（staffMap行の後）
-
-変更前:
-
-js
-  staffMap:{'西新':[],'原':[],'たの津':[],'ちくし野':[]},
-};
-変更後:
-
-js
-  staffMap:{'西新':[],'原':[],'たの津':[],'ちくし野':[]},
-  rehearsalDates:{'西新':[],'原':[],'たの津':[],'ちくし野':[]},
-};
-変更② applyData関数（S.staffMap=行の後に1行追加）
-
-js
-  S.staffMap=d.staffMap||{'西新':[],'原':[],'たの津':[],'ちくし野':[]};
-  // ↓この1行を追加
-  S.rehearsalDates=d.rehearsalDates||{'西新':[],'原':[],'たの津':[],'ちくし野':[]};
-変更③ 使用予定タブのヘッダー（S.happiouDates[g]?...のspanの直後に追加）
-
-js
-<span style="font-size:9px;color:var(--gr)">${S.happiouDates[g]?formatDate(S.happiouDates[g]):'未設定'}</span>
-// ↓この1行を追加
-${(S.rehearsalDates[g]||[]).length?`<span style="font-size:8px;color:var(--tx3)">リハ:${(S.rehearsalDates[g]||[]).map(d=>formatDate(d)).join('/')}</span>`:''}
-変更④・⑤ 設定タブ — btnOpenLabelPrintのカードブロックの前に以下を挿入し、btnShowDeletedのイベントバインドの後にリハーサル日イベントを追加:
-
-
-2個のコマンドを実行しました, ファイルを読み取りました
-2個のコマンドを実行しました, ファイルを読み取りました
-申し訳ありません、今日は新しいセッションのためapp.jsが手元にない状態で、直接編集ができませんでした。
-
-Code.gsは完成版をお渡しできました（リハーサル日対応済み）。
-
-app.jsは5箇所の手動変更が必要です。変更①②③は1〜2行の追加だけなので簡単です。変更④⑤は change4_setting_html.txt と change5_setting_events.txt の内容をそのまま貼り付けていただければOKです。
-
-次回からはセッション開始時にapp.jsを最初にアップロードしていただくとスムーズに作業できます。よろしくお願いします！
-
-
-Code
-GS 
-
-Change4 setting html
-TXT 
-
-Change5 setting events
-TXT 
-Change4,Change5、、、なにこれ？
-
-すみません！手動で変更してもらおうとしてしまいました。
-
-app.jsを貼り付けてもらえれば、こちらで完成版を出力します！
-
-
-// ============================================================ // 保育園 衣装管理アプリ — app.js（高速版） // 画面切り替えはローカルキャッシュのみ使用→即時表示 // APIコールは登録・更新・削除時のみ // ============================================================ const App = document.getElementById('app'); const S = { costumes:[], photos:
-
-pasted
-
-
-コマンドを実行しました · 1 ノート
-コマンドを実行しました · 1 ノート
-ドキュメントが空で届いています。お手数ですが、app.jsをファイルとして**添付（アップロード）**していただけますか？テキストの貼り付けではなく、ファイルのアップロードをお願いします。
-
-
-app.js
-js
-
-
-3個のコマンドを実行しました, ファイルを読み取りました · 2 ノート
-3個のコマンドを実行しました, ファイルを読み取りました · 2 ノート
-完成しました！反映手順は次の通りです。
-
-① Code.gsをGASに貼り替えて再デプロイ（getAllでrehearsalDatesを返す処理を追加しています）
-
-② app.jsをGitHubにアップロード
-
-動作は、設定タブの発表会日設定の下に「リハーサル日設定」が追加され、園ごとに日付を複数追加できます（×ボタンで削除）。使用予定タブの園名ヘッダーには発表会日の下に「リハ:11/20/11/25」のように小さく表示されます。
-
-
-App
-JS 
-
-Code
-GS 
-
-
-
-
-
-Claude は AI のため、誤りを含む可能性があります。回答内容は必ずご確認ください。
-App · JS
 // ============================================================
 //  保育園 衣装管理アプリ — app.js（高速版）
 //  画面切り替えはローカルキャッシュのみ使用→即時表示
 //  APIコールは登録・更新・削除時のみ
 // ============================================================
- 
+
 const App = document.getElementById('app');
- 
+
 const S = {
   costumes:[], photos:[], repertoires:[], usages:[], settings:{},
   gardenOrder:['西新','原','たの津','ちくし野'], myGarden:'西新',
@@ -135,7 +36,7 @@ function ageBadge(age,padding='2px 7px',fontSize='10px'){
   const c=AGE_COLOR[age]||{bg:'#F7F0E0',color:'#8A6A2E'};
   return `<span style="font-size:${fontSize};background:${c.bg};color:${c.color};border-radius:5px;padding:${padding};font-weight:700;white-space:nowrap">${esc(age)}</span>`;
 }
- 
+
 // 年度セレクトHTML生成
 function yearSelectHTML(id, selectedYear){
   const cur = selectedYear || new Date().getFullYear();
@@ -143,7 +44,7 @@ function yearSelectHTML(id, selectedYear){
     ${YEARS.map(y=>`<option value="${y}" ${y===cur?'selected':''}>${y}年度</option>`).join('')}
   </select>`;
 }
- 
+
 function gBadge(n){const c={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[n];return n?`<span class="badge badge-${c}">${n}</span>`:'';}
 function sBadge(s){const c=s==='現役'?'active':s==='修繕中'?'repair':'retire';return `<span class="badge badge-${c}">${s||''}</span>`;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -153,9 +54,9 @@ function getRepMainPhotoURL(repId){
   const main=photos.find(p=>p.種別==='メイン')||photos[0];
   return main?main.URL:'';
 }
- 
+
 function orderedGardens(){return [S.myGarden,...S.gardenOrder.filter(g=>g!==S.myGarden)];}
- 
+
 // 発表会開催日の昇順で園を並べ替え（未設定の園は末尾）
 function gardensByHappiouDate(gardens){
   return [...gardens].sort((a,b)=>{
@@ -168,16 +69,16 @@ function gardensByHappiouDate(gardens){
     return ta-tb;
   });
 }
- 
+
 // ============================================================
 //  localStorageキャッシュ（2回目以降の起動を高速化）
 // ============================================================
 const CACHE_KEY='costumeApp_v2';
- 
+
 function saveCache(d){
   try{localStorage.setItem(CACHE_KEY,JSON.stringify({t:Date.now(),...d}));}catch(e){}
 }
- 
+
 function loadCache(){
   try{
     const s=localStorage.getItem(CACHE_KEY);
@@ -187,7 +88,7 @@ function loadCache(){
     return d;
   }catch(e){return null;}
 }
- 
+
 function applyData(d){
   S.costumes=(d.costumes||[]).filter(r=>String(r.削除フラグ)!=='1');
   S.photos=(d.photos||[]).filter(r=>String(r.削除フラグ)!=='1');
@@ -204,7 +105,7 @@ function applyData(d){
   S.myGarden=localMy||'西新';
   S.gardenOrder=(localOrder||'西新,原,たの津,ちくし野').split(',');
 }
- 
+
 // 写真削除マーク共通関数（×押下でマーク、再押下で取消、保存で確定）
 // 写真の長押しドラッグ並び替え（メイン入替を含む）
 function bindPhotoDelBtns(selector, pendingSet, lblId, root){
@@ -233,7 +134,7 @@ function bindPhotoDelBtns(selector, pendingSet, lblId, root){
     });
   });
 }
- 
+
 let toastTimer;
 function toast(msg,dur=2500){
   let t=document.getElementById('toast');
@@ -241,7 +142,7 @@ function toast(msg,dur=2500){
   t.textContent=msg;t.classList.add('show');
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),dur);
 }
- 
+
 // ============================================================
 //  データ（起動時1回のみ取得、以降はローカル操作）
 // ============================================================
@@ -265,7 +166,7 @@ async function loadAll(){
     if(!S.loaded) toast('データ取得失敗。再読み込みしてください');
   }
 }
- 
+
 // ローカルキャッシュに衣装を追加
 function localAddCostume(costume){S.costumes.unshift(costume);}
 function localUpdateCostume(id,obj){const i=S.costumes.findIndex(c=>c.id===id);if(i>=0)Object.assign(S.costumes[i],obj);}
@@ -277,7 +178,7 @@ function localUpdateRep(id,obj){const i=S.repertoires.findIndex(r=>r.id===id);if
 function localDeleteRep(id){S.repertoires=S.repertoires.filter(r=>r.id!==id);S.usages=S.usages.filter(u=>u.演目id!==id);}
 function localAddUsage(u){S.usages.push(u);const r=S.repertoires.find(x=>x.id===u.演目id);if(r)r.衣装数=(r.衣装数||0)+1;if(S.curRep?.id===u.演目id){S.usages=S.usages.filter(x=>x.演目id===S.curRep.id);}}
 function localDeleteUsage(id){const u=S.usages.find(x=>x.id===id);S.usages=S.usages.filter(x=>x.id!==id);if(u){const r=S.repertoires.find(x=>x.id===u.演目id);if(r)r.衣装数=Math.max(0,(r.衣装数||1)-1);}}
- 
+
 // ============================================================
 //  ルーター（HTMLを最小限だけ更新）
 // ============================================================
@@ -296,9 +197,9 @@ function render(){
   else if(page==='rep-detail') renderRepDetail(body);
   else if(page==='rep-add') initRepAdd(body);
 }
- 
+
 const TITLES={costumes:'<i class="ti ti-hanger"></i> 衣装一覧',repertoires:'<i class="ti ti-theater"></i> 演目一覧',schedules:'<i class="ti ti-calendar-event"></i> 使用予定',settings:'<i class="ti ti-settings"></i> 設定','costume-detail':'<i class="ti ti-hanger"></i> 衣装詳細','costume-add':'<i class="ti ti-plus"></i> 衣装登録','rep-detail':'<i class="ti ti-theater"></i> 演目詳細','rep-add':'<i class="ti ti-plus"></i> 演目登録'};
- 
+
 function shellHTML(page,isSub){
   const showMenu=['costume-detail','rep-detail'].includes(page);
   const showListToggle=page==='costumes';
@@ -313,12 +214,12 @@ function shellHTML(page,isSub){
     ${navHTML()}
     ${(!isSub&&(page==='costumes'||page==='repertoires'))?'<button class="fab" id="btnFab"><i class="ti ti-plus"></i></button>':''}`;
 }
- 
+
 function navHTML(){
   const n=(id,icon,label)=>`<button class="nav-btn ${S.nav===id?'active':''}" data-nav="${id}"><i class="ti ti-${icon}"></i>${label}</button>`;
   return `<div class="bottom-nav">${n('costumes','hanger','衣装一覧')}${n('repertoires','theater','演目一覧')}${n('schedules','calendar-event','使用予定')}${n('settings','settings','設定')}</div>`;
 }
- 
+
 function bindShell(){
   const back=document.getElementById('btnBack');if(back)back.onclick=goBack;
   const fab=document.getElementById('btnFab');if(fab)fab.onclick=onFab;
@@ -326,13 +227,13 @@ function bindShell(){
   const tog=document.getElementById('btnToggleList');if(tog)tog.onclick=()=>{S.listMode=S.listMode==='grid'?'list':'grid';render();};
   document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{S.nav=b.dataset.nav;S.stack=[];render();});
 }
- 
+
 function pushPage(p){S.stack.push(p);render();}
 function goBack(){S.stack.pop();render();}
 function onFab(){if(S.nav==='costumes')pushPage('costume-add');else if(S.nav==='repertoires')pushPage('rep-add');}
 // 現在年度取得
 function currentYear(){return new Date().getFullYear();}
- 
+
 // ============================================================
 //  3点メニュー
 // ============================================================
@@ -354,7 +255,7 @@ function toggleMenu(){
 }
 function closeMenuOut(ev){const p=document.getElementById('menuPop');if(p&&!p.contains(ev.target)&&ev.target.id!=='btnMenu'){p.remove();document.removeEventListener('click',closeMenuOut);}}
 function closeMenu(){const p=document.getElementById('menuPop');if(p){p.remove();document.removeEventListener('click',closeMenuOut);}}
- 
+
 // ============================================================
 //  衣装一覧（グリッド / リスト切替）
 // ============================================================
@@ -378,17 +279,17 @@ function renderCostumes(body){
   body.querySelectorAll('[data-fs]').forEach(b=>b.onclick=()=>{S.fStatus=b.dataset.fs;renderCostumes();});
   body.querySelectorAll('[data-fc]').forEach(b=>b.onclick=()=>{S.fCat=b.dataset.fc;renderCostumes();});
   body.querySelectorAll('[data-fa]').forEach(b=>b.onclick=()=>{S.fAge=b.dataset.fa;renderCostumes();});
- 
+
   let list=S.costumes;
   if(S.fStatus)list=list.filter(c=>c.状態===S.fStatus);
   if(S.fCat)list=list.filter(c=>c.カテゴリー===S.fCat);
   if(S.fAge)list=list.filter(c=>c.対象年齢===S.fAge);
- 
+
   const wrap=document.getElementById('cosWrap');
   if(!wrap) return;
   if(!S.loaded){wrap.innerHTML='<div class="loading"><i class="ti ti-loader-2"></i>読み込み中...</div>';return;}
   if(!list.length){wrap.innerHTML='<div class="empty"><i class="ti ti-hanger"></i><p>衣装がありません</p></div>';return;}
- 
+
   if(S.listMode==='grid'){
     wrap.innerHTML=`<div class="costume-grid">${list.map(c=>{
       const dot=c.状態==='現役'?'sdot-active':c.状態==='修繕中'?'sdot-repair':'sdot-retire';
@@ -430,12 +331,12 @@ function renderCostumes(body){
     };
   });
 }
- 
+
 // ============================================================
 //  衣装詳細（ローカルデータで即時表示、写真はバックグラウンド取得）
 // ============================================================
 let detailPhotoIdx=0;
- 
+
 function openCostumeDetail(id){
   // ローカルキャッシュで即時表示
   S.curCostume=S.costumes.find(c=>c.id===id)||{id};
@@ -450,7 +351,7 @@ function openCostumeDetail(id){
   detailPhotoIdx=0;
   pushPage('costume-detail');
 }
- 
+
 function renderCostumeDetail(body){
   const c=S.curCostume;if(!c)return;
   const photos=c.写真||[];
@@ -487,7 +388,7 @@ function renderCostumeDetail(body){
       <div style="padding:12px"><button class="btn-primary" id="btnLinkRep"><i class="ti ti-plus"></i>演目に紐づける</button></div>
       <div style="height:20px"></div>
     </div>`;
- 
+
   // サムネイル
   const tr=document.getElementById('thumbRow');
   tr.innerHTML=photos.map((p,i)=>`
@@ -502,7 +403,7 @@ function renderCostumeDetail(body){
     mainEl.onclick=()=>openLightbox(photos,detailPhotoIdx);
   }
   document.getElementById('thumbAdd').onclick=selectPhotoForDetail;
- 
+
   // 使用履歴
   const hist=c.使用履歴||[];
   document.getElementById('histList').innerHTML=hist.length?hist.map(h=>`
@@ -517,7 +418,7 @@ function renderCostumeDetail(body){
     </div>`).join(''):'<div style="padding:12px;text-align:center;font-size:12px;color:var(--tx3)">使用履歴なし</div>';
   document.getElementById('histList').querySelectorAll('[data-eu]').forEach(b=>b.onclick=()=>openEditUsageFromCostume(b.dataset.eu,b.dataset.role,b.dataset.memo));
   document.getElementById('btnLinkRep').onclick=openLinkRepModal;
- 
+
   // 使用予定バッジ表示 & ボタンバインド
   const year=S.scheduleYear||CURRENT_YEAR;
   const cDecls=S.declarations.filter(d=>d.衣装id===c.id&&String(d.年度)===String(year));
@@ -535,7 +436,7 @@ function renderCostumeDetail(body){
     }
   }
   document.getElementById('btnDeclare').onclick=()=>openDeclarationModal(c.id);
- 
+
   // 移動先インライン変更
   const inlineDest=document.getElementById('inlineDestSel');
   if(inlineDest){
@@ -552,9 +453,9 @@ function renderCostumeDetail(body){
     };
   }
 }
- 
+
 function rowHTML(l,v){return `<div class="row"><span class="row-label">${l}</span><span class="row-value">${v||''}</span></div>`;}
- 
+
 // ============================================================
 //  写真アップロード
 // ============================================================
@@ -567,7 +468,7 @@ function selectPhotoForDetail(){
   };
   input.click();
 }
- 
+
 function selectPhotoForRep(){
   const input=document.createElement('input');
   input.type='file';input.accept='image/*';
@@ -579,7 +480,7 @@ function selectPhotoForRep(){
   };
   input.click();
 }
- 
+
 async function doUploadRepPhoto(file,種別,repId,順番){
   toast('写真を処理中...');
   try{
@@ -594,7 +495,7 @@ async function doUploadRepPhoto(file,種別,repId,順番){
     await refreshRepPhotos(repId);
   }catch(e){toast('アップロード失敗: '+e.message);console.error(e);}
 }
- 
+
 async function refreshRepPhotos(repId){
   try{
     const fresh=await RepertoireAPI.get(repId);
@@ -613,7 +514,7 @@ async function refreshRepPhotos(repId){
     renderRepDetail(document.getElementById('pageBody'));
   }catch(e){console.error(e);}
 }
- 
+
 async function doUploadPhoto(file,種別,costumeId,costumeID,順番){
   toast('写真アップロード中...',10000);
   try{
@@ -630,7 +531,7 @@ async function doUploadPhoto(file,種別,costumeId,costumeID,順番){
     toast('写真を保存しました');
   }catch(e){console.error(e);toast('アップロード失敗: '+e.message);}
 }
- 
+
 function resizeToBase64(file,maxSize=1280,quality=0.78){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -648,7 +549,7 @@ function resizeToBase64(file,maxSize=1280,quality=0.78){
     reader.onerror=reject;reader.readAsDataURL(file);
   });
 }
- 
+
 // ============================================================
 //  衣装 編集（写真削除含む）
 // ============================================================
@@ -676,7 +577,7 @@ function openEditCostume(){
         ${photos.length>1?`<div style="font-size:10px;color:var(--tx3);width:100%;margin-top:2px"><i class="ti ti-info-circle" style="font-size:11px"></i> 写真をタップしてメインに設定</div>`:''}
       </div>
     </div>`:'';
- 
+
   openModal('衣装を編集',`
     ${photoSection}
     <div class="field"><div class="field-label">衣装名</div><input id="ecName" value="${esc(c.衣装名)}"></div>
@@ -733,14 +634,14 @@ function openEditCostume(){
       };
     });
   });
- 
+
   let selSt=c.状態;
   document.querySelectorAll('#ecStatus .chip').forEach(b=>{
     b.onclick=()=>{document.querySelectorAll('#ecStatus .chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');selSt=b.dataset.s;};
   });
   window._ecSt=()=>selSt;
 }
- 
+
 async function saveEditCostume(){
   const c=S.curCostume;
   const btn=document.getElementById('mOk');
@@ -763,7 +664,7 @@ async function saveEditCostume(){
     setTimeout(()=>{closeModal();renderCostumeDetail(document.getElementById('pageBody'));},700);
   }catch(e){setBtn(btn,'<i class="ti ti-device-floppy"></i> 保存する',false);toast('保存失敗: '+e.message);}
 }
- 
+
 function confirmDeleteCostume(){
   closeMenu();
   showConfirm('この衣装を削除しますか？\n関連する写真も削除されます。',async()=>{
@@ -771,7 +672,7 @@ function confirmDeleteCostume(){
     catch(e){toast('削除失敗: '+e.message);}
   });
 }
- 
+
 // ============================================================
 //  衣装登録
 // ============================================================
@@ -824,7 +725,7 @@ function initCostumeAdd(body){
       <button class="btn-sub" style="flex:0 0 80px" id="acCancel">キャンセル</button>
       <button class="btn-primary" id="acSubmit"><i class="ti ti-device-floppy"></i>登録する</button>
     </div>`;
- 
+
   body.querySelectorAll('#acCat .chip').forEach(b=>b.onclick=()=>{
     body.querySelectorAll('#acCat .chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     acState.cat=b.dataset.cat;acState.code=b.dataset.code;
@@ -840,7 +741,7 @@ function initCostumeAdd(body){
   document.getElementById('acCancel').onclick=goBack;
   document.getElementById('acSubmit').onclick=submitCostume;
 }
- 
+
 async function submitCostume(){
   if(!acState.cat){toast('カテゴリーを選択してください');return;}
   if(!document.getElementById('acStorage').value){toast('保管場所を選択してください');return;}
@@ -863,7 +764,7 @@ async function submitCostume(){
     setTimeout(goBack,700);
   }catch(e){setBtn(btn,'<i class="ti ti-device-floppy"></i> 登録する',false);toast('登録失敗: '+e.message);}
 }
- 
+
 // ============================================================
 //  演目一覧
 // ============================================================
@@ -874,15 +775,15 @@ function renderReps(body){
   body.innerHTML=`<div class="filter-bar">${yearPills}</div><div class="filter-bar">${gardenPills}</div><div id="repWrap" style="flex:1;overflow-y:auto"></div>`;
   body.querySelectorAll('[data-fy]').forEach(b=>b.onclick=()=>{S.fYear=b.dataset.fy;renderReps(body);});
   body.querySelectorAll('[data-fg]').forEach(b=>b.onclick=()=>{S.fGarden=b.dataset.fg;renderReps(body);});
- 
+
   let list=S.repertoires;
   if(S.fYear)list=list.filter(r=>String(r.年度)===String(S.fYear));
   if(S.fGarden)list=list.filter(r=>String(r.園||'').indexOf(S.fGarden)>=0);
- 
+
   const wrap=document.getElementById('repWrap');
   if(!S.loaded){wrap.innerHTML='<div class="loading"><i class="ti ti-loader-2"></i>読み込み中...</div>';return;}
   if(!list.length){wrap.innerHTML='<div class="empty"><i class="ti ti-theater"></i><p>演目がありません</p></div>';return;}
- 
+
   const groups={};list.forEach(r=>{const y=r.年度||'不明';(groups[y]=groups[y]||[]).push(r);});
   const order=orderedGardens();
   wrap.innerHTML=Object.keys(groups).sort((a,b)=>b-a).map(year=>`
@@ -911,7 +812,7 @@ function renderReps(body){
     </div>`).join('');
   wrap.querySelectorAll('.costume-card[data-id]').forEach(it=>it.onclick=()=>openRepDetail(it.dataset.id));
 }
- 
+
 // ============================================================
 //  演目詳細（ローカルデータで即時表示）
 // ============================================================
@@ -931,7 +832,7 @@ function openRepDetail(id){
   S.curRepUsages=repUsages;
   pushPage('rep-detail');
 }
- 
+
 function renderRepDetail(body){
   const r=S.curRep;if(!r)return;
   const usages=S.curRepUsages||[];
@@ -971,7 +872,7 @@ function renderRepDetail(body){
       <div class="card" style="padding:0" id="usageList"></div>
       <div style="height:20px"></div>
     </div>`;
- 
+
   const ul=document.getElementById('usageList');
   ul.innerHTML=usages.length?`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:10px 12px">${usages.map(u=>{
     const dot=S.costumes.find(c=>c.id===u.衣装id)?.状態==='修繕中'?'sdot-repair':S.costumes.find(c=>c.id===u.衣装id)?.状態==='廃棄'?'sdot-retire':'sdot-active';
@@ -992,9 +893,9 @@ function renderRepDetail(body){
       </div>
     </div>`;
   }).join('')}</div>`:'<div class="empty" style="padding:20px"><i class="ti ti-hanger" style="font-size:28px;margin-bottom:6px"></i><p>衣装未登録</p></div>';
- 
+
   document.getElementById('btnLC').onclick=openLinkCostumeModal;
- 
+
   // 演目写真イベント
   let repPhotoIdx=0;
   const repMainEl=document.getElementById('repPhotoMain');
@@ -1021,7 +922,7 @@ function renderRepDetail(body){
     };
   });
 }
- 
+
 // ============================================================
 //  演目 編集・削除
 // ============================================================
@@ -1093,7 +994,7 @@ function openEditRep(){
     });
   });
 }
- 
+
 function confirmDeleteRep(){
   closeMenu();
   showConfirm('この演目を削除しますか？\n衣装の紐づけも削除されます。',async()=>{
@@ -1101,7 +1002,7 @@ function confirmDeleteRep(){
     catch(e){toast('削除失敗: '+e.message);}
   });
 }
- 
+
 // ============================================================
 //  演目登録
 // ============================================================
@@ -1137,7 +1038,7 @@ function initRepAdd(body){
       <button class="btn-sub" style="flex:0 0 80px" id="arCancel">キャンセル</button>
       <button class="btn-primary" id="arSubmit"><i class="ti ti-device-floppy"></i>登録する</button>
     </div>`;
- 
+
   // 写真選択
   arState.photoFile=null;
   document.getElementById('arPhotoBtn').onclick=()=>{
@@ -1146,14 +1047,14 @@ function initRepAdd(body){
       const rd=new FileReader();rd.onload=ev=>{document.getElementById('arPhotoImg').src=ev.target.result;document.getElementById('arPhotoPrev').style.display='block';document.getElementById('arPhotoLabel').textContent=f.name;};rd.readAsDataURL(f);};
     inp.click();
   };
- 
+
   body.querySelectorAll('#arType .chip').forEach(b=>b.onclick=()=>{body.querySelectorAll('#arType .chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');arState.type=b.dataset.t;});
   body.querySelectorAll('#arGarden .chip').forEach(b=>b.onclick=()=>{b.classList.toggle('on');const g=b.dataset.g,ic=b.querySelector('i');if(b.classList.contains('on')){arState.gardens.push(g);ic.className='ti ti-circle-check';}else{arState.gardens=arState.gardens.filter(x=>x!==g);ic.className='ti ti-circle';}});
   document.getElementById('arCancel').onclick=goBack;
   document.getElementById('arSubmit').onclick=submitRep;
   // drumIdxはsubmit時にarYearSelから直接取得するため初期化不要
 }
- 
+
 async function submitRep(){
   if(!document.getElementById('arName').value){toast('演目名を入力してください');return;}
   if(!arState.gardens.length){toast('実施園を選択してください');return;}
@@ -1176,7 +1077,7 @@ async function submitRep(){
     setTimeout(goBack,700);
   }catch(e){setBtn(btn,'<i class="ti ti-device-floppy"></i> 登録する',false);toast('登録失敗: '+e.message);}
 }
- 
+
 // ドラムロール
 const YEARS=[];for(let y=2018;y<=2048;y++)YEARS.push(y);
 function initDrum(){
@@ -1188,7 +1089,7 @@ function initDrum(){
     if(sel) sel.onchange=e=>{drumIdx=YEARS.indexOf(parseInt(e.target.value));};
   },0);
 }
- 
+
 // ============================================================
 //  紐づけモーダル（演目→衣装）
 // ============================================================
@@ -1233,7 +1134,7 @@ function openLinkCostumeModal(){
   };
   renderL();document.getElementById('lcS').oninput=e=>renderL(e.target.value);
 }
- 
+
 // ============================================================
 //  紐づけモーダル（衣装→演目）
 // ============================================================
@@ -1280,7 +1181,7 @@ function openLinkRepModal(){
   };
   renderL();document.getElementById('lrY').onchange=renderL;document.getElementById('lrG').onchange=renderL;
 }
- 
+
 // ============================================================
 //  メモ・役柄編集
 // ============================================================
@@ -1304,7 +1205,7 @@ function openEditUsage(uid,role,memo){
     }catch(e){setBtn(btn,'<i class="ti ti-device-floppy"></i> 保存する',false);toast('保存失敗: '+e.message);}
   });
 }
- 
+
 function openEditUsageFromCostume(uid,role,memo){
   openModal('衣装の使い方を編集',`
     <div class="field"><div class="field-label"><i class="ti ti-user"></i>役柄</div><input id="euR" value="${esc(role)}" placeholder="例：うさぎ"></div>
@@ -1323,7 +1224,7 @@ function openEditUsageFromCostume(uid,role,memo){
     }catch(e){setBtn(btn,'<i class="ti ti-device-floppy"></i> 保存する',false);toast('保存失敗: '+e.message);}
   });
 }
- 
+
 function confirmDeleteUsage(uid){
   showConfirm('この紐づけを解除しますか？',async()=>{
     try{
@@ -1333,7 +1234,7 @@ function confirmDeleteUsage(uid){
     }catch(e){toast('失敗: '+e.message);}
   });
 }
- 
+
 // ============================================================
 //  設定
 // ============================================================
@@ -1349,7 +1250,7 @@ function renderSettings(body){
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px">マイ園が自動で先頭になります</div>
       <div style="padding:0 12px" id="orderList"></div>
       <div style="padding:12px"><button class="btn-primary" id="btnSaveS"><i class="ti ti-device-floppy"></i>設定を保存</button></div>
- 
+
       <div class="section"><div class="section-title"><i class="ti ti-calendar-event"></i>発表会日設定（${new Date().getFullYear()}年度）</div></div>
       <div class="card" style="padding:0">
         ${GARDENS.map(g=>`
@@ -1361,7 +1262,7 @@ function renderSettings(body){
           <button class="btn-primary" id="btnSaveHDates" style="background:var(--gr)"><i class="ti ti-device-floppy"></i>発表会日を保存</button>
         </div>
       </div>
- 
+
       <div class="section"><div class="section-title"><i class="ti ti-calendar-time"></i>リハーサル日設定（${new Date().getFullYear()}年度）</div></div>
       <div class="card" style="padding:0">
         ${GARDENS.map(g=>{
@@ -1380,13 +1281,13 @@ function renderSettings(body){
           </div>`;
         }).join('')}
       </div>
- 
+
       <div class="section"><div class="section-title"><i class="ti ti-printer"></i>衣装ID ラベル印刷</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">ジップロックに入れる衣装ID紙をA4横向きで印刷します</div>
         <button class="btn-primary" id="btnOpenLabelPrint" style="background:var(--gr)"><i class="ti ti-printer"></i>ラベルを作成</button>
       </div>
- 
+
       <div class="section"><div class="section-title"><i class="ti ti-users"></i>職員名マスタ</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px">使用表明時のプルダウン候補を園ごとに管理できます</div>
       <div class="card" style="padding:10px 12px" id="staffMasterCard">
@@ -1399,7 +1300,7 @@ function renderSettings(body){
           <button id="btnAddStaff" style="height:36px;padding:0 14px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-plus"></i></button>
         </div>
       </div>
- 
+
       <div class="section"><div class="section-title"><i class="ti ti-restore"></i>削除済み衣装</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">削除した衣装を復活させることができます</div>
@@ -1418,12 +1319,12 @@ function renderSettings(body){
     bindOrderDrag();
   };
   renderOrder();
- 
+
   // ドラッグ＆ドロップで並び替え（マイ園=先頭は固定、残り3園のみ可動）
   function bindOrderDrag(){
     const list=document.getElementById('orderList');
     let dragG=null;
- 
+
     list.querySelectorAll('.order-item[draggable="true"]').forEach(el=>{
       el.addEventListener('dragstart',e=>{
         dragG=el.dataset.g;
@@ -1453,7 +1354,7 @@ function renderSettings(body){
         renderOrder();
       });
     });
- 
+
     // タッチ対応（長押しドラッグ）
     let touchDragEl=null, touchStartY=0, longPressT=null;
     list.querySelectorAll('.order-item[draggable="true"]').forEach(el=>{
@@ -1513,7 +1414,7 @@ function renderSettings(body){
     }catch(e){toast('保存失敗: '+e.message);}
   };
   document.getElementById('btnShowDeleted').onclick=openDeletedCostumesModal;
- 
+
   // リハーサル日の追加・削除
   const saveRehearsalDates=async(g,dates)=>{
     await api('setSetting',{key:'rehearsalDates_'+g,value:JSON.stringify(dates)});
@@ -1547,10 +1448,10 @@ function renderSettings(body){
       }catch(e){toast('削除失敗: '+e.message);}
     };
   });
- 
+
   // 職員名マスタ（GAS経由で全端末共有）
   let staffGarden=GARDENS[0];
- 
+
   const renderStaffList=()=>{
     const list=S.staffMap[staffGarden]||[];
     const wrap=document.getElementById('staffListWrap');
@@ -1583,7 +1484,7 @@ function renderSettings(body){
       };
     });
   };
- 
+
   document.getElementById('staffGardenChips').querySelectorAll('.chip').forEach(b=>{
     b.onclick=()=>{
       document.getElementById('staffGardenChips').querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
@@ -1593,7 +1494,7 @@ function renderSettings(body){
       renderStaffList();
     };
   });
- 
+
   document.getElementById('btnAddStaff').onclick=async()=>{
     const name=document.getElementById('staffNameInput').value.trim();
     if(!name){toast('職員名を入力してください');return;}
@@ -1627,8 +1528,8 @@ function renderSettings(body){
     catch(e){setBtn(btn,'<i class="ti ti-device-floppy"></i> 設定を保存',false);toast('保存失敗: '+e.message);}
   };
 }
- 
- 
+
+
 // ============================================================
 //  削除済み衣装の復活
 // ============================================================
@@ -1649,7 +1550,7 @@ async function openDeletedCostumesModal(){
     </div>`;
   App.appendChild(ov);
   document.getElementById('dpBack').onclick=()=>ov.remove();
- 
+
   // データ取得
   let deleted=[];
   try{
@@ -1658,13 +1559,13 @@ async function openDeletedCostumesModal(){
     document.getElementById('dpBody').innerHTML=`<div class="empty"><p>取得失敗: ${esc(e.message)}</p></div>`;
     return;
   }
- 
+
   const body=document.getElementById('dpBody');
   if(!deleted.length){
     body.innerHTML='<div class="empty"><i class="ti ti-circle-check" style="font-size:36px;color:var(--rd)"></i><p>削除済みの衣装はありません</p></div>';
     return;
   }
- 
+
   body.innerHTML=`
     <div style="font-size:11px;color:var(--tx3);margin-bottom:4px">「復活」を押すと衣装一覧に戻ります</div>
     ${deleted.map(c=>`
@@ -1678,7 +1579,7 @@ async function openDeletedCostumesModal(){
           <i class="ti ti-restore"></i>復活
         </button>
       </div>`).join('')}`;
- 
+
   // 復活ボタンにイベントを直接バインド
   deleted.forEach(c=>{
     const btn=document.getElementById('restore_'+c.id);
@@ -1700,7 +1601,7 @@ async function openDeletedCostumesModal(){
     });
   });
 }
- 
+
 // ============================================================
 //  衣装IDラベル印刷
 // ============================================================
@@ -1712,7 +1613,7 @@ const CAT_INITIALS=[
   {label:'頭飾り (H)',code:'H'},
   {label:'その他 (O)',code:'O'},
 ];
- 
+
 function openLabelPrintModal(){
   openModal('衣装IDラベル印刷',`
     <div class="field">
@@ -1737,12 +1638,12 @@ function openLabelPrintModal(){
     openLabelPreview(code,from,to,digits);
   });
 }
- 
+
 function openLabelPreview(code,from,to,digits){
   const ids=[];
   for(let n=from;n<=to;n++) ids.push(code+String(n).padStart(digits,'0'));
   const catLabel=CAT_INITIALS.find(c=>c.code===code)?.label.replace(/\s*\(.\)$/,'')||'';
- 
+
   const ov=document.createElement('div');
   ov.id='labelPreview';
   ov.style.cssText='position:fixed;inset:0;background:#fff;z-index:300;display:flex;flex-direction:column';
@@ -1759,11 +1660,11 @@ function openLabelPreview(code,from,to,digits){
     </div>
   `;
   document.body.appendChild(ov);
- 
+
   const PER_PAGE=4;
   const pages=[];
   for(let i=0;i<ids.length;i+=PER_PAGE) pages.push(ids.slice(i,i+PER_PAGE));
- 
+
   document.getElementById('lpPages').innerHTML=pages.map(pageIds=>`
     <div class="label-page" style="width:297mm;height:210mm;background:#fff;margin:0 auto 16px;box-shadow:0 1px 6px rgba(0,0,0,.25);display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);position:relative">
       ${pageIds.map((id,i)=>`
@@ -1773,53 +1674,53 @@ function openLabelPreview(code,from,to,digits){
         </div>`).join('')}
       ${Array.from({length:PER_PAGE-pageIds.length}).map(()=>'<div></div>').join('')}
     </div>`).join('');
- 
+
   document.getElementById('lpClose').onclick=()=>ov.remove();
   document.getElementById('lpPdfBtn').onclick=document.getElementById('lpGenBtn').onclick=()=>generateLabelPDF(pages,catLabel);
 }
- 
+
 // Canvas経由でPDFを生成（日本語フォントもそのまま描画できる確実な方式）
 async function generateLabelPDF(pages, catLabel){
   const statusEl=document.getElementById('lpGenStatus');
   const btn=document.getElementById('lpGenBtn');
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> 作成中...';}
- 
+
   // フォントの読み込みを保証（未ロードだと文字が豆腐化する）
   try{
     await document.fonts.load('bold 80px "Noto Sans JP"');
     await document.fonts.load('28px "Noto Sans JP"');
     await document.fonts.ready;
   }catch(e){}
- 
+
   // mm→px換算（300dpi基準: 1mm=11.81px）
   const DPI_SCALE=11.81;
   const PAGE_W=297*DPI_SCALE, PAGE_H=210*DPI_SCALE;
- 
+
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
- 
+
   for(let pIdx=0; pIdx<pages.length; pIdx++){
     if(statusEl) statusEl.textContent=`ページ ${pIdx+1}/${pages.length} を作成中...`;
     const pageIds=pages[pIdx];
- 
+
     const canvas=document.createElement('canvas');
     canvas.width=PAGE_W; canvas.height=PAGE_H;
     const ctx=canvas.getContext('2d');
     ctx.fillStyle='#fff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
- 
+
     const colW=PAGE_W/2, rowH=PAGE_H/2;
- 
+
     // 切り取り線（点線）
     ctx.strokeStyle='#aaa'; ctx.setLineDash([6,6]); ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(colW,0); ctx.lineTo(colW,PAGE_H); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0,rowH); ctx.lineTo(PAGE_W,rowH); ctx.stroke();
- 
+
     // フォントサイズはmm単位で指定し、DPI_SCALEでpx変換（プレビューのpx指定とは無関係に直接計算）
     const idFontMM=24;     // ID文字の高さ(mm相当)
     const catFontMM=8;     // カテゴリー文字の高さ(mm相当)
     const idFontPx=idFontMM*DPI_SCALE;
     const catFontPx=catFontMM*DPI_SCALE;
- 
+
     pageIds.forEach((id,i)=>{
       const col=i%2, row=Math.floor(i/2);
       const cx=colW*col+colW/2, cy=rowH*row+rowH/2;
@@ -1831,20 +1732,20 @@ async function generateLabelPDF(pages, catLabel){
       ctx.font=`${catFontPx}px "Noto Sans JP",sans-serif`;
       ctx.fillText(catLabel, cx, cy+idFontPx*0.55);
     });
- 
+
     const imgData=canvas.toDataURL('image/jpeg',0.95);
     if(pIdx>0) pdf.addPage();
     pdf.addImage(imgData,'JPEG',0,0,297,210);
   }
- 
+
   if(statusEl) statusEl.textContent='ダウンロードを準備しています...';
   pdf.save(`衣装IDラベル_${new Date().getTime()}.pdf`);
- 
+
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-file-download"></i>PDFを作成してダウンロード</button>'.replace('</button>','');btn.innerHTML='<i class="ti ti-file-download"></i>PDFを作成してダウンロード';}
   if(statusEl) statusEl.textContent='PDFをダウンロードしました。PDFビューアから印刷してください。';
   toast('PDFを作成しました');
 }
- 
+
 // ============================================================
 //  写真ライトボックス（拡大表示）
 // ============================================================
@@ -1853,7 +1754,7 @@ function openLightbox(photos, startIdx=0){
   const ov=document.createElement('div');
   ov.id='lightbox';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none';
- 
+
   const render=()=>{
     const p=photos[idx];
     ov.innerHTML=`
@@ -1877,12 +1778,12 @@ function openLightbox(photos, startIdx=0){
     if(prev) prev.onclick=()=>{if(idx>0){idx--;render();}};
     if(next) next.onclick=()=>{if(idx<photos.length-1){idx++;render();}};
   };
- 
+
   // スワイプ＋ピンチズーム対応
   let tx=0,ty=0,pinching=false,startDist=0,curScale=1;
- 
+
   function getDist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);}
- 
+
   ov.addEventListener('touchstart',e=>{
     if(e.touches.length===2){
       pinching=true;startDist=getDist(e.touches);
@@ -1890,7 +1791,7 @@ function openLightbox(photos, startIdx=0){
       tx=e.touches[0].clientX;ty=e.touches[0].clientY;
     }
   },{passive:true});
- 
+
   ov.addEventListener('touchmove',e=>{
     if(pinching&&e.touches.length===2){
       const d=getDist(e.touches);
@@ -1899,7 +1800,7 @@ function openLightbox(photos, startIdx=0){
       if(img)img.style.transform=`scale(${scale})`;
     }
   },{passive:true});
- 
+
   ov.addEventListener('touchend',e=>{
     if(pinching){
       if(e.touches.length<2){
@@ -1923,7 +1824,7 @@ function openLightbox(photos, startIdx=0){
     }
     if(Math.abs(dy)>80&&Math.abs(dy)>Math.abs(dx)&&curScale<=1.1)ov.remove();
   },{passive:true});
- 
+
   // ダブルタップでズームトグル
   let lastTap=0;
   ov.addEventListener('click',e=>{
@@ -1938,10 +1839,10 @@ function openLightbox(photos, startIdx=0){
     }
     lastTap=now;
   });
- 
+
   // 背景タップで閉じる（ズーム中は無効）
   ov.addEventListener('click',e=>{if(e.target===ov&&curScale<=1.1)ov.remove();});
- 
+
   // キーボード
   const keyHandler=e=>{
     if(e.key==='ArrowLeft'&&idx>0){idx--;render();}
@@ -1950,7 +1851,7 @@ function openLightbox(photos, startIdx=0){
   };
   document.addEventListener('keydown',keyHandler);
   ov.addEventListener('remove',()=>document.removeEventListener('keydown',keyHandler));
- 
+
   document.body.appendChild(ov);
   render();
 }
@@ -1976,10 +1877,10 @@ function showConfirm(msg,onYes){
   document.getElementById('cNo').onclick=closeConfirm;
   document.getElementById('cYes').onclick=()=>{closeConfirm();onYes();};
 }
- 
+
 function setBtn(btn,html,disabled,bg=''){btn.disabled=disabled;btn.innerHTML=html;btn.style.background=bg;}
 function selHTML(id,opts,val){return `<select id="${id}">${opts.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join('')}</select>`;}
- 
+
 // リスト表示用CSS追加
 const listStyle=document.createElement('style');
 listStyle.textContent=`
@@ -1989,7 +1890,7 @@ listStyle.textContent=`
 .cli-info{flex:1;min-width:0}
 `;
 document.head.appendChild(listStyle);
- 
+
 async function refreshAll(){
   try{
     const d=await AllAPI.get();
@@ -1997,7 +1898,7 @@ async function refreshAll(){
     saveCache(d);
   }catch(e){console.error(e);}
 }
- 
+
 // ============================================================
 //  起動
 // ============================================================
@@ -2007,26 +1908,26 @@ async function refreshAll(){
   render();
   await loadAll();
 })();
- 
+
 // ============================================================
 //  使用予定タブ
 // ============================================================
 const CURRENT_YEAR = new Date().getFullYear();
- 
+
 function renderSchedules(body){
   if(!S.loaded){body.innerHTML='<div class="loading"><i class="ti ti-loader-2"></i>読み込み中...</div>';return;}
   const year = S.scheduleYear || CURRENT_YEAR;
- 
+
   // 年度フィルター（現在年度±2年）
   const years = [year-1, year, year+1];
   const yearPills = years.map(y=>`<button class="filter-pill ${y===year?'on':''}" data-sy="${y}">${y}年度</button>`).join('');
- 
+
   // 園フィルター
   const gardens = ['全園',...GARDENS];
   const gardenPills = gardens.map(g=>`<button class="filter-pill ${(S.scheduleGarden||'全園')===g?'on':''}" data-sg="${g}">${g}</button>`).join('');
- 
+
   const conflictOnlyOn = S.scheduleConflictOnly||false;
- 
+
   body.innerHTML=`
     <div class="filter-bar">${yearPills}</div>
     <div class="filter-bar">${gardenPills}</div>
@@ -2036,30 +1937,30 @@ function renderSchedules(body){
       </button>
     </div>
     <div id="schWrap" style="flex:1;overflow-y:auto;padding:8px 12px"></div>`;
- 
+
   body.querySelectorAll('[data-sy]').forEach(b=>b.onclick=()=>{S.scheduleYear=parseInt(b.dataset.sy);renderSchedules(body);});
   body.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{S.scheduleGarden=b.dataset.sg;renderSchedules(body);});
   document.getElementById('btnConflictOnly').onclick=()=>{S.scheduleConflictOnly=!S.scheduleConflictOnly;renderSchedules(body);};
- 
+
   renderScheduleTable(year);
 }
- 
+
 function renderScheduleTable(year){
   const wrap=document.getElementById('schWrap');
   if(!wrap)return;
- 
+
   const fGarden = S.scheduleGarden||'全園';
   const decls = S.declarations.filter(d=>String(d.年度)===String(year));
   const order = S.gardenOrder||GARDENS;
- 
+
   // 表明がある衣装を抽出
   const costumeIds = [...new Set(decls.map(d=>d.衣装id))];
   let costumes = S.costumes.filter(c=>costumeIds.includes(c.id));
   if(fGarden!=='全園') costumes=costumes.filter(c=>decls.some(d=>d.衣装id===c.id&&d.園===fGarden));
- 
+
   // 競合フィルターは後で conflicts確定後に適用するためフラグだけ保持
   const conflictOnly = S.scheduleConflictOnly||false;
- 
+
   // 競合チェック（同じ衣装を複数の園が表明している＝競合）
   const conflicts=new Set();
   costumeIds.forEach(cid=>{
@@ -2068,10 +1969,10 @@ function renderScheduleTable(year){
     const gardens=[...new Set(cDecls.map(d=>d.園))];
     if(gardens.length>1) conflicts.add(cid);
   });
- 
+
   // 競合フィルター適用
   if(conflictOnly) costumes=costumes.filter(c=>conflicts.has(c.id));
- 
+
   // 競合バナー
   const conflictHTML = conflicts.size>0 ? `
     <div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:var(--r);padding:10px 12px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start">
@@ -2085,16 +1986,16 @@ function renderScheduleTable(year){
         }).join('<br>')}
       </div>
     </div>`:'' ;
- 
+
   if(costumes.length===0){
     wrap.innerHTML=conflictHTML+'<div class="empty"><i class="ti ti-calendar-event" style="font-size:36px;color:var(--br2)"></i><p>使用表明がありません</p><p style="font-size:11px;color:var(--tx3)">衣装詳細から「使用表明」を登録できます</p></div>';
     return;
   }
- 
+
   // 表形式でレンダリング（添付画像スタイル：衣装行×園列）
   const showGardens = fGarden==='全園' ? gardensByHappiouDate(order) : [fGarden];
   const colW = fGarden==='全園' ? Math.floor(100/order.length) : 80;
- 
+
   wrap.innerHTML=conflictHTML+`
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;min-width:320px">
@@ -2104,7 +2005,7 @@ function renderScheduleTable(year){
             ${showGardens.map(g=>`
               <th style="text-align:center;padding:6px 4px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br)">
                 ${g}<br><span style="font-size:9px;color:var(--gr)">${S.happiouDates[g]?formatDate(S.happiouDates[g]):'未設定'}</span>
-                ${(S.rehearsalDates[g]||[]).length?`<span style="font-size:8px;color:var(--tx3)">リハ:${(S.rehearsalDates[g]||[]).map(d=>formatDate(d)).join('/')}</span>`:``}
+                ${(S.rehearsalDates[g]||[]).length?'<span style="font-size:8px;color:var(--tx3)">リハ:'+(S.rehearsalDates[g]||[]).map(d=>formatDate(d)).join('/')+'</span>':''}
               </th>`).join('')}
           </tr>
         </thead>
@@ -2157,7 +2058,7 @@ function renderScheduleTable(year){
         </tbody>
       </table>
     </div>`;
- 
+
   // 移動先プルダウン変更
   wrap.querySelectorAll('[data-dest-cid]').forEach(sel=>{
     sel.onchange=async()=>{
@@ -2174,12 +2075,12 @@ function renderScheduleTable(year){
       }catch(e){toast('更新失敗: '+e.message);}finally{sel.disabled=false;}
     };
   });
- 
+
   // 衣装詳細に飛ぶ
   wrap.querySelectorAll('[data-open-costume]').forEach(el=>{
     el.onclick=()=>openCostumeDetail(el.dataset.openCostume);
   });
- 
+
   // 担当者名編集
   wrap.querySelectorAll('[data-edit-decl]').forEach(btn=>{
     btn.onclick=async(e)=>{
@@ -2243,7 +2144,7 @@ function renderScheduleTable(year){
       document.getElementById('editNameInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('editNameOk').click();};
     };
   });
- 
+
   // 表明取消
   wrap.querySelectorAll('[data-del-decl]').forEach(btn=>{
     btn.onclick=async(e)=>{
@@ -2258,7 +2159,7 @@ function renderScheduleTable(year){
       }catch(e2){toast('取消失敗: '+e2.message);}
     };
   });
- 
+
   // 演目に紐づける
   wrap.querySelectorAll('[data-link-decl]').forEach(btn=>{
     btn.onclick=(e)=>{
@@ -2271,7 +2172,7 @@ function renderScheduleTable(year){
     };
   });
 }
- 
+
 function toDateInput(str){
   if(!str)return '';
   // ISO形式（2026-11-27T15:00:00.000Z）をyyyy-MM-ddに変換
@@ -2283,7 +2184,7 @@ function toDateInput(str){
   }
   return '';
 }
- 
+
 function formatDate(str){
   if(!str)return '';
   const d=new Date(str);
@@ -2295,7 +2196,7 @@ function formatDate(str){
   }
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
- 
+
 function openRepLinkFromSchedule(costumeId){
   // 演目紐づけモーダルを開く（衣装詳細ページのaddUsage相当）
   const c=S.costumes.find(x=>x.id===costumeId);
@@ -2331,8 +2232,8 @@ function openRepLinkFromSchedule(costumeId){
     });
   });
 }
- 
- 
+
+
 // ============================================================
 //  使用表明モーダル（衣装詳細から呼ぶ）
 // ============================================================
@@ -2341,7 +2242,7 @@ function openDeclarationModal(costumeId){
   if(!c)return;
   const year=S.scheduleYear||CURRENT_YEAR;
   const existing=S.declarations.filter(d=>d.衣装id===costumeId&&String(d.年度)===String(year));
- 
+
   openModal(`使用表明（${year}年度）`,`
     <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:10px">${esc(c.衣装ID)} ${esc(c.衣装名)}</div>
     <div style="font-size:12px;color:var(--tx2);margin-bottom:8px">どの園が使用しますか？（複数選択可）</div>
@@ -2461,21 +2362,3 @@ function openDeclarationModal(costumeId){
     });
   });
 }
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
