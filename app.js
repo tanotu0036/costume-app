@@ -1274,9 +1274,19 @@ function renderSettings(body){
               ${rdates.map(d=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gr-l);border:0.5px solid var(--gr-b);border-radius:12px;padding:2px 8px;font-size:11px">${formatDate(d)}<button data-del-rdate="${g}" data-rdate="${d}" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--tx3);padding:0;line-height:1"><i class="ti ti-x"></i></button></span>`).join('')}
               ${!rdates.length?`<span style="font-size:11px;color:var(--tx3)">未設定</span>`:''}
             </div>
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:4px;margin-bottom:6px">
+              <button class="rdate-mode-btn on" data-mode="single" data-garden="${g}" style="flex:1;height:28px;border-radius:var(--r-sm);border:0.5px solid var(--gr);background:var(--gr);color:#fff;font-size:11px;cursor:pointer;font-family:inherit">個別追加</button>
+              <button class="rdate-mode-btn" data-mode="range" data-garden="${g}" style="flex:1;height:28px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg3);color:var(--tx2);font-size:11px;cursor:pointer;font-family:inherit">範囲指定</button>
+            </div>
+            <div id="rdate_single_${g}" style="display:flex;gap:6px">
               <input type="date" id="rdate_input_${g}" style="flex:1;height:32px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 8px;font-size:12px">
               <button data-add-rdate="${g}" style="height:32px;padding:0 12px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:12px;cursor:pointer;font-family:inherit">追加</button>
+            </div>
+            <div id="rdate_range_${g}" style="display:none;gap:6px;flex-wrap:wrap;align-items:center">
+              <input type="date" id="rdate_from_${g}" style="flex:1;min-width:100px;height:32px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 8px;font-size:12px">
+              <span style="font-size:12px;color:var(--tx2)">〜</span>
+              <input type="date" id="rdate_to_${g}" style="flex:1;min-width:100px;height:32px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 8px;font-size:12px">
+              <button data-add-rdate-range="${g}" style="width:100%;height:32px;margin-top:4px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:12px;cursor:pointer;font-family:inherit">一括追加</button>
             </div>
           </div>`;
         }).join('')}
@@ -1420,6 +1430,55 @@ function renderSettings(body){
     await api('setSetting',{key:'rehearsalDates_'+g,value:JSON.stringify(dates)});
     S.rehearsalDates[g]=dates;
   };
+  // リハーサル日モード切り替え（個別/範囲）
+  document.querySelectorAll('.rdate-mode-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      const mode=btn.dataset.mode;
+      const g=btn.dataset.garden;
+      // ボタンの見た目切り替え
+      document.querySelectorAll(`.rdate-mode-btn[data-garden="${g}"]`).forEach(b=>{
+        const on=b.dataset.mode===mode;
+        b.style.background=on?'var(--gr)':'var(--bg3)';
+        b.style.color=on?'#fff':'var(--tx2)';
+        b.style.borderColor=on?'var(--gr)':'var(--br2)';
+      });
+      // 入力欄切り替え
+      document.getElementById('rdate_single_'+g).style.display=mode==='single'?'flex':'none';
+      document.getElementById('rdate_range_'+g).style.display=mode==='range'?'flex':'none';
+    };
+  });
+
+  // 範囲指定で一括追加
+  document.querySelectorAll('[data-add-rdate-range]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const g=btn.dataset.addRdateRange;
+      const fromVal=document.getElementById('rdate_from_'+g)?.value;
+      const toVal=document.getElementById('rdate_to_'+g)?.value;
+      if(!fromVal||!toVal){toast('開始日と終了日を選択してください');return;}
+      if(fromVal>toVal){toast('開始日は終了日より前にしてください');return;}
+      // 開始日〜終了日の全日付を生成
+      const dates=S.rehearsalDates[g]||[];
+      const newDates=new Set(dates);
+      const cur=new Date(fromVal);
+      const end=new Date(toVal);
+      let count=0;
+      while(cur<=end){
+        const d=cur.toISOString().slice(0,10);
+        newDates.add(d);
+        cur.setDate(cur.getDate()+1);
+        count++;
+        if(count>60){toast('範囲が広すぎます（最大60日）');return;}
+      }
+      btn.disabled=true;
+      try{
+        const sorted=[...newDates].sort();
+        await saveRehearsalDates(g,sorted);
+        toast(`${g}に${count}日分のリハーサル日を追加しました`);
+        renderSettings(document.getElementById('pageBody'));
+      }catch(e){toast('追加失敗: '+e.message);}finally{btn.disabled=false;}
+    };
+  });
+
   document.querySelectorAll('[data-add-rdate]').forEach(btn=>{
     btn.onclick=async()=>{
       const g=btn.dataset.addRdate;
