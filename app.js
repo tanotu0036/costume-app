@@ -1241,17 +1241,17 @@ function confirmDeleteUsage(uid){
 function renderSettings(body){
   body.innerHTML=`
     <div style="flex:1;overflow-y:auto;padding-bottom:20px">
-      <div class="section"><div class="section-title"><i class="ti ti-building"></i>マイ園設定</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-building"></i>マイ園設定</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px"><i class="ti ti-device-mobile" style="font-size:12px"></i> この端末だけの設定です（他の人には影響しません）</div>
       <div class="card" style="padding:10px 12px">
         <div class="chip-grid" id="mgChips">${GARDENS.map(g=>`<button class="chip ${S.myGarden===g?'on':''}" data-g="${g}">${g}</button>`).join('')}</div>
       </div>
-      <div class="section"><div class="section-title"><i class="ti ti-arrows-sort"></i>園の表示順</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-arrows-sort"></i>園の表示順</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px">マイ園が自動で先頭になります</div>
       <div style="padding:0 12px" id="orderList"></div>
       <div style="padding:12px"><button class="btn-primary" id="btnSaveS"><i class="ti ti-device-floppy"></i>設定を保存</button></div>
 
-      <div class="section"><div class="section-title"><i class="ti ti-calendar-event"></i>発表会日設定（${new Date().getFullYear()}年度）</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-calendar-event"></i>発表会日設定（${new Date().getFullYear()}年度）</div></div>
       <div class="card" style="padding:0">
         ${GARDENS.map(g=>`
           <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:0.5px solid var(--br)">
@@ -1263,7 +1263,7 @@ function renderSettings(body){
         </div>
       </div>
 
-      <div class="section"><div class="section-title"><i class="ti ti-calendar-time"></i>リハーサル日設定（${new Date().getFullYear()}年度）</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-calendar-time"></i>リハーサル日設定（${new Date().getFullYear()}年度）</div></div>
       <div class="card" style="padding:0">
         ${GARDENS.map(g=>{
           const rdates=S.rehearsalDates[g]||[];
@@ -1292,13 +1292,13 @@ function renderSettings(body){
         }).join('')}
       </div>
 
-      <div class="section"><div class="section-title"><i class="ti ti-printer"></i>衣装ID ラベル印刷</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-printer"></i>衣装ID ラベル印刷</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">ジップロックに入れる衣装ID紙をA4横向きで印刷します</div>
         <button class="btn-primary" id="btnOpenLabelPrint" style="background:var(--gr)"><i class="ti ti-printer"></i>ラベルを作成</button>
       </div>
 
-      <div class="section"><div class="section-title"><i class="ti ti-users"></i>職員名マスタ</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-users"></i>職員名マスタ</div></div>
       <div style="font-size:11px;color:var(--tx3);padding:0 12px 6px">使用表明時のプルダウン候補を園ごとに管理できます</div>
       <div class="card" style="padding:10px 12px" id="staffMasterCard">
         <div class="chip-grid" id="staffGardenChips" style="margin-bottom:10px">
@@ -1311,7 +1311,7 @@ function renderSettings(body){
         </div>
       </div>
 
-      <div class="section"><div class="section-title"><i class="ti ti-restore"></i>削除済み衣装</div></div>
+      <div class="section"><div class="settings-section-title"><i class="ti ti-restore"></i>削除済み衣装</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">削除した衣装を復活させることができます</div>
         <button class="btn-primary" id="btnShowDeleted" style="background:var(--tx2)"><i class="ti ti-eye"></i>削除済み衣装を見る</button>
