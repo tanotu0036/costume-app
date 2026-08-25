@@ -2086,8 +2086,8 @@ function renderScheduleTable(year){
             const cDecls=decls.filter(d=>d.衣装id===c.id);
             const isConflict=conflicts.has(c.id);
             return `
-              <tr style="border-bottom:0.5px solid var(--br);${isConflict?'background:#FFF8F8':''}">
-                <td style="padding:8px 8px;vertical-align:middle">
+              <tr style="${isConflict?'background:#FFF8F8':''}">
+                <td style="padding:8px 8px;vertical-align:middle;border-top:0.5px solid var(--br);border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br)">
                   <div style="display:flex;align-items:center;gap:7px;cursor:pointer" data-open-costume="${c.id}">
                     <div style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center">
                       ${c.メイン写真URL?`<img src="${esc(c.メイン写真URL)}" style="width:100%;height:100%;object-fit:cover">`:`<i class="ti ti-hanger" style="color:var(--br2);font-size:16px"></i>`}
@@ -2112,7 +2112,7 @@ function renderScheduleTable(year){
                 ${showGardens.map(g=>{
                   const d=cDecls.find(x=>x.園===g);
                   const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[g]||'nishi';
-                  return `<td style="text-align:center;padding:6px 4px;vertical-align:middle">
+                  return `<td style="text-align:center;padding:6px 4px;vertical-align:middle;border-top:0.5px solid var(--br);border-bottom:0.5px solid var(--br);border-left:0.5px solid var(--br)">
                     ${d?`
                       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
                         <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}</span>
