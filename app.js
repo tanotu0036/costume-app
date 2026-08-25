@@ -2057,26 +2057,26 @@ function renderScheduleTable(year){
 
   wrap.innerHTML=conflictHTML+`
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:320px;table-layout:fixed;border:0.5px solid var(--br)">
+      <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:320px;table-layout:fixed;border:0.5px solid var(--br);border-radius:4px;overflow:hidden">
         <thead>
           <tr>
-            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border:0.5px solid var(--br);width:45%;vertical-align:middle"></th>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:middle;background:var(--bg3)"></th>
             ${showGardens.map(g=>`
-              <th style="text-align:center;padding:4px 1px 3px;color:var(--tx);font-weight:700;border:0.5px solid var(--br);overflow:hidden;width:${Math.floor(55/showGardens.length)}%">
+              <th style="text-align:center;padding:4px 1px 3px;color:var(--tx);font-weight:700;border-top:0.5px solid var(--br);border-left:0.5px solid var(--br);border-bottom:0.5px solid var(--br);overflow:hidden;width:${Math.floor(55/showGardens.length)}%;background:var(--bg2)">
                 <span style="display:block;font-size:11px;white-space:nowrap;transform-origin:center;transform:scale(${g.length>=4?'0.75':'1'});font-weight:700">${g}</span>
               </th>`).join('')}
           </tr>
           <tr>
-            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border:0.5px solid var(--br);width:45%;vertical-align:middle">発表会</th>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-top:0.5px solid var(--br);border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:middle;background:var(--bg3)">発表会</th>
             ${showGardens.map(g=>`
-              <th style="text-align:center;padding:2px 4px;font-size:10px;color:var(--gr);font-weight:700;border:0.5px solid var(--br)">
+              <th style="text-align:center;padding:2px 4px;font-size:10px;color:var(--gr);font-weight:700;border-top:0.5px solid var(--br);border-left:0.5px solid var(--br);border-bottom:0.5px solid var(--br);background:var(--bg2)">
                 ${S.happiouDates[g]?formatDate(S.happiouDates[g]):'—'}
               </th>`).join('')}
           </tr>
           <tr>
-            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border:0.5px solid var(--br);border-bottom:1.5px solid var(--br2);width:45%;vertical-align:middle">リハーサル</th>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-top:0.5px solid var(--br);border-bottom:2px solid var(--br2);border-right:0.5px solid var(--br);width:45%;vertical-align:middle;background:var(--bg3)">リハーサル</th>
             ${showGardens.map(g=>`
-              <th style="text-align:center;padding:2px 4px;font-size:9px;color:var(--tx2);border:0.5px solid var(--br);border-bottom:1.5px solid var(--br2)">
+              <th style="text-align:center;padding:2px 4px;font-size:9px;color:var(--tx2);border-top:0.5px solid var(--br);border-left:0.5px solid var(--br);border-bottom:2px solid var(--br2);background:var(--bg2)">
                 ${formatDateRanges(S.rehearsalDates[g]||[])||'<span style="color:var(--br2)">—</span>'}
               </th>`).join('')}
           </tr>
