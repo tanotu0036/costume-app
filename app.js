@@ -2060,24 +2060,24 @@ function renderScheduleTable(year){
       <table style="width:100%;border-collapse:collapse;min-width:320px">
         <thead>
           <tr>
-            <th style="text-align:left;padding:3px 8px 0;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:bottom">発表会</th>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:middle"></th>
             ${showGardens.map(g=>`
-              <th style="text-align:center;padding:4px 4px 2px;font-size:12px;color:var(--tx);font-weight:700;border-bottom:0.5px solid var(--br);border-left:0.5px solid var(--br)">${g}</th>`).join('')}
+              <th style="text-align:center;padding:4px 1px 3px;color:var(--tx);font-weight:700;border-bottom:0.5px solid var(--br);border-left:0.5px solid var(--br);overflow:hidden">
+                <span style="display:block;font-size:11px;white-space:nowrap;transform-origin:center;transform:scale(${g.length>=4?'0.75':'1'});font-weight:700">${g}</span>
+              </th>`).join('')}
           </tr>
           <tr>
-            <th style="text-align:left;padding:0 8px 3px;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);vertical-align:top">リハーサル</th>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);vertical-align:middle">発表会</th>
             ${showGardens.map(g=>`
-              <th style="border-left:0.5px solid var(--br);padding:0;border-bottom:0.5px solid var(--br)">
-                <div style="display:flex;flex-direction:column">
-                  <div style="display:flex;align-items:center;padding:2px 4px;border-bottom:${(S.rehearsalDates[g]||[]).length?'0.5px solid var(--br)':'none'}">
-                    <span style="font-size:9px;color:var(--tx3);font-weight:500;min-width:28px">発表会</span>
-                    <span style="font-size:9px;color:var(--gr);font-weight:700">${S.happiouDates[g]?formatDate(S.happiouDates[g]):'未設定'}</span>
-                  </div>
-                  ${(S.rehearsalDates[g]||[]).length?`<div style="display:flex;align-items:flex-start;padding:2px 4px">
-                    <span style="font-size:9px;color:var(--tx3);font-weight:500;min-width:28px;flex-shrink:0">リハ</span>
-                    <span style="font-size:8px;color:var(--tx2);line-height:1.4">${formatDateRanges(S.rehearsalDates[g]||[])}</span>
-                  </div>`:''}
-                </div>
+              <th style="text-align:center;padding:2px 4px;font-size:10px;color:var(--gr);font-weight:700;border-bottom:0.5px solid var(--br);border-left:0.5px solid var(--br)">
+                ${S.happiouDates[g]?formatDate(S.happiouDates[g]):'—'}
+              </th>`).join('')}
+          </tr>
+          <tr>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:1px solid var(--br);border-right:0.5px solid var(--br);vertical-align:middle">リハーサル</th>
+            ${showGardens.map(g=>`
+              <th style="text-align:center;padding:2px 4px;font-size:9px;color:var(--tx2);border-bottom:1px solid var(--br);border-left:0.5px solid var(--br)">
+                ${formatDateRanges(S.rehearsalDates[g]||[])||'<span style="color:var(--br2)">—</span>'}
               </th>`).join('')}
           </tr>
         </thead>
