@@ -447,7 +447,7 @@ function renderCostumeDetail(body){
         await CostumeAPI.update({id:c.id,移動先:newDest});
         localUpdateCostume(c.id,{移動先:newDest});
         S.curCostume.移動先=newDest;
-        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
         toast('移動先を更新しました');
       }catch(e){toast('更新失敗: '+e.message);}finally{inlineDest.disabled=false;}
     };
@@ -510,7 +510,7 @@ async function refreshRepPhotos(repId){
       const m=S.curRep.写真.find(p=>p.種別==='メイン')||S.curRep.写真[0];
       S.repertoires[idx].メイン写真URL=m?m.URL:'';
     }
-    saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings});
+    saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
     renderRepDetail(document.getElementById('pageBody'));
   }catch(e){console.error(e);}
 }
@@ -624,7 +624,7 @@ function openEditCostume(){
           const ci=S.costumes.findIndex(c=>c.id===freshC.id);
           const newMain=freshC.写真.find(p=>p.種別==='メイン')||freshC.写真[0];
           if(ci>=0) S.costumes[ci].メイン写真URL=newMain?newMain.URL:'';
-          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings});
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
           closeModal();
           // detailPhotoIdxを0にリセットしてからre-render
           detailPhotoIdx=0;
@@ -758,7 +758,7 @@ async function submitCostume(){
       newC.メイン写真URL=pr.url;newC.写真枚数=1;
     }
     localAddCostume(newC);
-    saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings});
+    saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
     setBtn(btn,'<i class="ti ti-circle-check"></i> 登録完了！',false,'var(--gr2)');
     toast(res.衣装ID+' を登録しました');
     setTimeout(goBack,700);
@@ -967,7 +967,7 @@ function openEditRep(){
         }
       }
       await RepertoireAPI.update(body);localUpdateRep(r.id,body);Object.assign(S.curRep,body);
-      saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings});
+      saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
       setBtn(btn,'<i class="ti ti-circle-check"></i> 保存完了！',false,'var(--gr2)');
       toast('保存しました');
       setTimeout(()=>{closeModal();renderRepDetail(document.getElementById('pageBody'));},700);
@@ -1962,8 +1962,6 @@ async function refreshAll(){
 //  起動
 // ============================================================
 (async()=>{
-  // 対象年齢機能追加のためキャッシュを一度クリア
-  localStorage.removeItem(CACHE_KEY);
   render();
   await loadAll();
 })();
@@ -2142,7 +2140,7 @@ function renderScheduleTable(year){
         localUpdateCostume(cid,{移動先:newDest});
         const sc=S.costumes.find(x=>x.id===cid);
         if(sc)sc.移動先=newDest;
-        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
         toast('移動先を更新しました');
       }catch(e){toast('更新失敗: '+e.message);}finally{sel.disabled=false;}
     };
@@ -2198,7 +2196,7 @@ function renderScheduleTable(year){
           await api('updateDeclaration',{id:declId,担当者:newName});
           const decl=S.declarations.find(d=>d.id===declId);
           if(decl) decl.担当者=newName;
-          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
           // マスタに未登録の名前なら自動追加
           const currentNames=(S.staffMap[g]||[]).map(item=>typeof item==='string'?item:(item.職員名||''));
           if(!currentNames.includes(newName)){
@@ -2225,7 +2223,7 @@ function renderScheduleTable(year){
       try{
         await api('deleteDeclaration',{id:btn.dataset.delDecl});
         S.declarations=S.declarations.filter(d=>d.id!==btn.dataset.delDecl);
-        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+        saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
         renderScheduleTable(year);
         toast('表明を取り消しました');
       }catch(e2){toast('取消失敗: '+e2.message);}
@@ -2312,7 +2310,7 @@ function openRepLinkFromSchedule(costumeId){
           const res=await api('addUsage',{演目id:repId,衣装id:costumeId,役柄:'',メモ:''});
           const newUsage={id:res.id,演目id:repId,衣装id:costumeId,役柄:'',メモ:''};
           S.usages.push(newUsage);
-          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
           toast('演目に紐づけました！');
           closeModal();
         }catch(e2){toast('紐づけ失敗: '+e2.message);}
@@ -2365,7 +2363,7 @@ function openDeclarationModal(costumeId){
             const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,取消フラグ:''};
             S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
             S.declarations.push(newDecl);
-            saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+            saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
             toast(`${g}の使用表明を登録しました`);
             closeModal();
             renderCostumeDetail(document.getElementById('pageBody'));
@@ -2441,7 +2439,7 @@ function openDeclarationModal(costumeId){
         try{
           await api('deleteDeclaration',{id:btn.dataset.cancelDecl});
           S.declarations=S.declarations.filter(d=>d.id!==btn.dataset.cancelDecl);
-          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates});
+          saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
           toast('表明を取り消しました');
           closeModal();
           renderCostumeDetail(document.getElementById('pageBody'));
