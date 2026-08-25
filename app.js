@@ -2060,11 +2060,12 @@ function renderScheduleTable(year){
       <table style="width:100%;border-collapse:collapse;min-width:320px">
         <thead>
           <tr>
-            <th rowspan="2" style="text-align:left;padding:6px 8px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:middle">衣装</th>
+            <th style="text-align:left;padding:3px 8px 0;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:none;border-right:0.5px solid var(--br);width:45%;vertical-align:bottom">発表会</th>
             ${showGardens.map(g=>`
               <th style="text-align:center;padding:4px 4px 2px;font-size:12px;color:var(--tx);font-weight:700;border-bottom:none;border-left:0.5px solid var(--br)">${g}</th>`).join('')}
           </tr>
           <tr>
+            <th style="text-align:left;padding:0 8px 3px;font-size:10px;color:var(--tx3);font-weight:600;border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);vertical-align:top">リハーサル</th>
             ${showGardens.map(g=>`
               <th style="border-left:0.5px solid var(--br);padding:0;border-bottom:0.5px solid var(--br)">
                 <div style="display:flex;flex-direction:column">
