@@ -2065,7 +2065,7 @@ function renderScheduleTable(year){
               </th>`).join('')}
           </tr>
           <tr>
-            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-top:1px solid #fff;border-bottom:1px solid #fff;border-right:1px solid #fff;width:45%;vertical-align:middle;background:var(--bg3)">発表会</th>
+            <th style="text-align:left;padding:3px 8px;font-size:10px;color:var(--tx3);font-weight:600;border-top:0.5px solid var(--br);border-bottom:0.5px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:middle;background:var(--bg3)">発表会</th>
             ${showGardens.map(g=>`
               <th style="text-align:center;padding:2px 4px;font-size:10px;color:var(--gr);font-weight:700;border-top:0.5px solid var(--br);border-left:0.5px solid var(--br);border-bottom:0.5px solid var(--br);background:var(--bg2)">
                 ${S.happiouDates[g]?formatDate(S.happiouDates[g]):'—'}
@@ -2085,7 +2085,7 @@ function renderScheduleTable(year){
             const isConflict=conflicts.has(c.id);
             return `
               <tr style="${isConflict?'background:#FFF8F8':''}">
-                <td style="padding:8px 8px;vertical-align:middle;border-top:1px solid #fff;border-bottom:1px solid #fff;border-right:1px solid #fff">
+                <td style="padding:8px 8px;vertical-align:middle;border-top:1px solid #fff;border-bottom:1px solid #fff;border-right:0.5px solid var(--br)">
                   <div style="display:flex;align-items:center;gap:7px;cursor:pointer" data-open-costume="${c.id}">
                     <div style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center">
                       ${c.メイン写真URL?`<img src="${esc(c.メイン写真URL)}" style="width:100%;height:100%;object-fit:cover">`:`<i class="ti ti-hanger" style="color:var(--br2);font-size:16px"></i>`}
