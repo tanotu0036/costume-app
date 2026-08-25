@@ -2060,11 +2060,23 @@ function renderScheduleTable(year){
       <table style="width:100%;border-collapse:collapse;min-width:320px">
         <thead>
           <tr>
-            <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br);width:45%">衣装</th>
+            <th rowspan="2" style="text-align:left;padding:6px 8px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br);border-right:0.5px solid var(--br);width:45%;vertical-align:middle">衣装</th>
             ${showGardens.map(g=>`
-              <th style="text-align:center;padding:6px 4px;font-size:11px;color:var(--tx3);font-weight:500;border-bottom:1px solid var(--br)">
-                ${g}<br><span style="font-size:9px;color:var(--gr)">${S.happiouDates[g]?formatDate(S.happiouDates[g]):'未設定'}</span>
-                ${(S.rehearsalDates[g]||[]).length?'<span style="font-size:8px;color:var(--tx3)">リハ:'+(S.rehearsalDates[g]||[]).map(d=>formatDate(d)).join('/')+'</span>':''}
+              <th style="text-align:center;padding:4px 4px 2px;font-size:12px;color:var(--tx);font-weight:700;border-bottom:none;border-left:0.5px solid var(--br)">${g}</th>`).join('')}
+          </tr>
+          <tr>
+            ${showGardens.map(g=>`
+              <th style="border-left:0.5px solid var(--br);padding:0;border-bottom:0.5px solid var(--br)">
+                <div style="display:flex;flex-direction:column">
+                  <div style="display:flex;align-items:center;padding:2px 4px;border-bottom:${(S.rehearsalDates[g]||[]).length?'0.5px solid var(--br)':'none'}">
+                    <span style="font-size:9px;color:var(--tx3);font-weight:500;min-width:28px">発表会</span>
+                    <span style="font-size:9px;color:var(--gr);font-weight:700">${S.happiouDates[g]?formatDate(S.happiouDates[g]):'未設定'}</span>
+                  </div>
+                  ${(S.rehearsalDates[g]||[]).length?`<div style="display:flex;align-items:flex-start;padding:2px 4px">
+                    <span style="font-size:9px;color:var(--tx3);font-weight:500;min-width:28px;flex-shrink:0">リハ</span>
+                    <span style="font-size:8px;color:var(--tx2);line-height:1.4">${formatDateRanges(S.rehearsalDates[g]||[])}</span>
+                  </div>`:''}
+                </div>
               </th>`).join('')}
           </tr>
         </thead>
@@ -2254,6 +2266,22 @@ function formatDate(str){
     return str;
   }
   return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// 連続する日付をまとめて「8/25〜8/30」形式で返す
+function formatDateRanges(dates){
+  if(!dates||!dates.length)return '';
+  const sorted=[...dates].sort();
+  const ranges=[];
+  let start=sorted[0],prev=sorted[0];
+  for(let i=1;i<sorted.length;i++){
+    const cur=sorted[i];
+    const diff=(new Date(cur)-new Date(prev))/(1000*60*60*24);
+    if(diff===1){prev=cur;}
+    else{ranges.push(start===prev?formatDate(start):formatDate(start)+'〜'+formatDate(prev));start=cur;prev=cur;}
+  }
+  ranges.push(start===prev?formatDate(start):formatDate(start)+'〜'+formatDate(prev));
+  return ranges.join('<br>');
 }
 
 function openRepLinkFromSchedule(costumeId){
