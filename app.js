@@ -1427,7 +1427,7 @@ function renderSettings(body){
 
   // リハーサル日の追加・削除
   const saveRehearsalDates=async(g,dates)=>{
-    await api('setSetting',{key:'rehearsalDates_'+g,value:JSON.stringify(dates)});
+    await apiPost('setSetting',{key:'rehearsalDates_'+g,value:JSON.stringify(dates)});
     S.rehearsalDates[g]=dates;
     saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
   };
