@@ -431,8 +431,8 @@ function renderCostumeDetail(body){
         const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[d.園]||'nishi';
         const dateStr=S.happiouDates[d.園]?` ${formatDate(S.happiouDates[d.園])}`:'';
         const nameStr=d.担当者?` ${d.担当者}`:'';
-        const colorStr=d.使用色?` (${d.使用色})`:'';
-        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}${nameStr}${colorStr}</span>`;
+        const bikouStr=d.備考?` (${d.備考})`:'';
+        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}${nameStr}${bikouStr}</span>`;
       }).join('');
     }
   }
@@ -2153,7 +2153,8 @@ function renderScheduleTable(year){
                       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
                         <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}</span>
                         ${d.担当者?`<span style="font-size:9px;color:var(--tx2);font-weight:500">${d.担当者}</span>`:''}
-                        ${d.使用色?`<span style="font-size:9px;color:var(--rd);font-weight:500"><i class="ti ti-palette" style="font-size:9px"></i>${d.使用色}</span>`:''  }
+                        ${d.備考?`<span style="font-size:9px;color:var(--rd);font-weight:500">${d.備考}</span>`:''}
+
                         <div style="display:flex;gap:6px;align-items:center">
                           <button data-edit-decl="${d.id}" data-edit-decl-g="${g}" data-edit-decl-name="${esc(d.担当者||'')}" style="font-size:9px;color:var(--gr);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">編集</button>
                           <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
@@ -2398,8 +2399,8 @@ function openDeclarationModal(costumeId){
         const doDecl=async(myName,bikou='')=>{
           btn.disabled=true;btn.textContent='登録中...';
           try{
-            const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName,使用色:bikou});
-            const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,使用色:bikou,取消フラグ:''};
+            const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName,備考:bikou});
+            const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,備考:bikou,取消フラグ:''};
             S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
             S.declarations.push(newDecl);
             saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
