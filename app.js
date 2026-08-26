@@ -2059,10 +2059,10 @@ function renderScheduleTable(year){
   if(conflictOnly) costumes=costumes.filter(c=>conflicts.has(c.id));
 
   // 競合バナー（発表会日重複・リハーサル日重複のみアラート）
-  const hasAnyConflict=multiDeclareCids.length>0||happiouConflicts.size>0||rehearsalConflicts.size>0;
   // 複数園が表明している衣装すべてをアラート対象に（発表会・リハ重複はラベルで区別）
   const multiDeclareCids=costumeIds.filter(cid=>[...new Set(decls.filter(d=>d.衣装id===cid).map(d=>d.園))].length>1);
   const allConflictIds=[...new Set([...multiDeclareCids,...happiouConflicts,...rehearsalConflicts])];
+  const hasAnyConflict=multiDeclareCids.length>0||happiouConflicts.size>0||rehearsalConflicts.size>0;
   const conflictHTML = hasAnyConflict ? `
     <div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:var(--r);padding:10px 12px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start">
       <i class="ti ti-alert-triangle" style="color:#A32D2D;font-size:16px;flex-shrink:0;margin-top:1px"></i>
