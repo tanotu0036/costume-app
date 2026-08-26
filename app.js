@@ -431,7 +431,8 @@ function renderCostumeDetail(body){
         const gc={'西新':'nishi','原':'hara','たの津':'tano','ちくし野':'chiku'}[d.園]||'nishi';
         const dateStr=S.happiouDates[d.園]?` ${formatDate(S.happiouDates[d.園])}`:'';
         const nameStr=d.担当者?` ${d.担当者}`:'';
-        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}${nameStr}</span>`;
+        const colorStr=d.使用色?` (${d.使用色})`:'';
+        return `<span class="badge badge-${gc}" style="font-size:12px;padding:4px 10px">${d.園}${dateStr}${nameStr}${colorStr}</span>`;
       }).join('');
     }
   }
@@ -2019,28 +2020,64 @@ function renderScheduleTable(year){
   // 競合フィルターは後で conflicts確定後に適用するためフラグだけ保持
   const conflictOnly = S.scheduleConflictOnly||false;
 
-  // 競合チェック（同じ衣装を複数の園が表明している＝競合）
-  const conflicts=new Set();
+  // ① 発表会日が重なる衣装競合チェック
+  //    （同じ衣装を複数園が表明 かつ 発表会日が同じ日）
+  const happiouConflicts=new Set();
   costumeIds.forEach(cid=>{
     const cDecls=decls.filter(d=>d.衣装id===cid);
-    // 複数の異なる園が表明していれば競合
     const gardens=[...new Set(cDecls.map(d=>d.園))];
-    if(gardens.length>1) conflicts.add(cid);
+    if(gardens.length<2)return;
+    const dates=gardens.map(g=>toDateInput(S.happiouDates[g]||'')).filter(Boolean);
+    const uniqueDates=new Set(dates);
+    // 発表会日が設定済みで同じ日が存在すれば競合
+    if(dates.length>=2&&uniqueDates.size<dates.length) happiouConflicts.add(cid);
   });
+
+  // ② リハーサル日が重なる衣装競合チェック
+  //    （同じ衣装を複数園が表明 かつ リハーサル日が1日でも重なる）
+  const rehearsalConflicts=new Set();
+  costumeIds.forEach(cid=>{
+    const cDecls=decls.filter(d=>d.衣装id===cid);
+    const gardens=[...new Set(cDecls.map(d=>d.園))];
+    if(gardens.length<2)return;
+    const dateSets=gardens.map(g=>new Set(S.rehearsalDates[g]||[]));
+    for(let i=0;i<dateSets.length;i++){
+      for(let j=i+1;j<dateSets.length;j++){
+        for(const d of dateSets[i]){
+          if(dateSets[j].has(d)){rehearsalConflicts.add(cid);break;}
+        }
+        if(rehearsalConflicts.has(cid))break;
+      }
+      if(rehearsalConflicts.has(cid))break;
+    }
+  });
+
+  // 旧conflictsはフィルター用に維持（複数園表明＝全体の競合判定）
+  const conflicts=new Set([...happiouConflicts,...rehearsalConflicts]);
 
   // 競合フィルター適用
   if(conflictOnly) costumes=costumes.filter(c=>conflicts.has(c.id));
 
-  // 競合バナー
-  const conflictHTML = conflicts.size>0 ? `
+  // 競合バナー（発表会日重複・リハーサル日重複のみアラート）
+  const hasAnyConflict=multiDeclareCids.length>0||happiouConflicts.size>0||rehearsalConflicts.size>0;
+  // 複数園が表明している衣装すべてをアラート対象に（発表会・リハ重複はラベルで区別）
+  const multiDeclareCids=costumeIds.filter(cid=>[...new Set(decls.filter(d=>d.衣装id===cid).map(d=>d.園))].length>1);
+  const allConflictIds=[...new Set([...multiDeclareCids,...happiouConflicts,...rehearsalConflicts])];
+  const conflictHTML = hasAnyConflict ? `
     <div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:var(--r);padding:10px 12px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start">
       <i class="ti ti-alert-triangle" style="color:#A32D2D;font-size:16px;flex-shrink:0;margin-top:1px"></i>
       <div style="font-size:12px;color:#A32D2D;line-height:1.6">
-        ${[...conflicts].map(cid=>{
+        ${allConflictIds.map(cid=>{
           const c=S.costumes.find(x=>x.id===cid);
           const cDecls=decls.filter(d=>d.衣装id===cid);
           const sortedDecls=[...cDecls].sort((a,b)=>{const da=toDateInput(S.happiouDates[a.園]||'');const db=toDateInput(S.happiouDates[b.園]||'');if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;return da.localeCompare(db);});
-          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>：${sortedDecls.map(d=>`${d.園}${S.happiouDates[d.園]?'（'+formatDate(S.happiouDates[d.園])+'）':''}`).join('・')}で使用予定`;
+          const isHap=happiouConflicts.has(cid);
+          const isReh=rehearsalConflicts.has(cid);
+          const labels=[];
+          labels.push('衣装が競合');
+          if(isHap) labels.push('発表会日が重複');
+          if(isReh) labels.push('リハーサル日が重複');
+          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>（${labels.join('・')}）：${sortedDecls.map(d=>`${d.園}${S.happiouDates[d.園]?'（'+formatDate(S.happiouDates[d.園])+'）':''}`).join('・')}`;
         }).join('<br>')}
       </div>
     </div>`:'' ;
@@ -2116,6 +2153,7 @@ function renderScheduleTable(year){
                       <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
                         <span class="badge badge-${gc}" style="font-size:10px;padding:3px 8px">${g}</span>
                         ${d.担当者?`<span style="font-size:9px;color:var(--tx2);font-weight:500">${d.担当者}</span>`:''}
+                        ${d.使用色?`<span style="font-size:9px;color:var(--rd);font-weight:500"><i class="ti ti-palette" style="font-size:9px"></i>${d.使用色}</span>`:''  }
                         <div style="display:flex;gap:6px;align-items:center">
                           <button data-edit-decl="${d.id}" data-edit-decl-g="${g}" data-edit-decl-name="${esc(d.担当者||'')}" style="font-size:9px;color:var(--gr);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">編集</button>
                           <button data-del-decl="${d.id}" style="font-size:9px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">取消</button>
@@ -2357,11 +2395,11 @@ function openDeclarationModal(costumeId){
       btn.onclick=async()=>{
         const g=btn.dataset.addDecl;
         // 名前が未登録なら入力を促す、登録済みならそのまま表明
-        const doDecl=async(myName)=>{
+        const doDecl=async(myName,bikou='')=>{
           btn.disabled=true;btn.textContent='登録中...';
           try{
-            const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName});
-            const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,取消フラグ:''};
+            const res=await api('addDeclaration',{年度:year,衣装id:costumeId,園:g,担当者:myName,使用色:bikou});
+            const newDecl={id:res.id,年度:year,衣装id:costumeId,園:g,担当者:myName,使用色:bikou,取消フラグ:''};
             S.declarations=S.declarations.filter(d=>!(d.衣装id===costumeId&&d.園===g&&String(d.年度)===String(year)));
             S.declarations.push(newDecl);
             saveCache({costumes:S.costumes,photos:S.photos,repertoires:S.repertoires,usages:S.usages,settings:S.settings,declarations:S.declarations,happiouDates:S.happiouDates,rehearsalDates:S.rehearsalDates,staffMap:S.staffMap});
@@ -2388,7 +2426,13 @@ function openDeclarationModal(costumeId){
                 ${pastNames.map(n=>`<button class="name-chip" data-n="${n}" style="height:30px;padding:0 12px;border-radius:15px;border:0.5px solid var(--gr-b);background:var(--gr-l);color:var(--gr2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${n}</button>`).join('')}
               </div>
             </div>`:'' }
-            <input id="nameDialogInput" placeholder="または直接入力…" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
+            <input id="nameDialogInput" placeholder="または直接入力…" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:10px">
+            <div style="font-size:11px;color:var(--tx2);margin-bottom:6px"><i class="ti ti-package" style="font-size:11px;color:var(--gr)"></i> 使用方法（任意）</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button class="use-type-btn on" data-type="全部" style="flex:1;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--gr);background:var(--gr);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">全部使用</button>
+              <button class="use-type-btn" data-type="一部" style="flex:1;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg3);color:var(--tx2);font-size:12px;cursor:pointer;font-family:inherit">一部使用</button>
+            </div>
+            <input id="colorDialogInput" placeholder="備考（色・個数など）" style="width:100%;height:36px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
             <div style="display:flex;gap:8px">
               <button id="nameDialogCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
               <button id="nameDialogOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">表明する</button>
@@ -2404,6 +2448,22 @@ function openDeclarationModal(costumeId){
           };
         });
         setTimeout(()=>!pastNames.length&&document.getElementById('nameDialogInput')?.focus(),50);
+        nameWrap.querySelectorAll('.use-type-btn').forEach(btn2=>{
+          btn2.onclick=()=>{
+            nameWrap.querySelectorAll('.use-type-btn').forEach(b=>{b.style.background='var(--bg3)';b.style.color='var(--tx2)';b.style.borderColor='var(--br2)';b.classList.remove('on');});
+            btn2.style.background='var(--gr)';btn2.style.color='#fff';btn2.style.borderColor='var(--gr)';btn2.classList.add('on');
+            const inp=document.getElementById('colorDialogInput');
+            if(inp){
+              if(btn2.dataset.type==='一部'){
+                inp.placeholder='何を何個か入力（例：オレンジ2個・青1個）';
+                inp.style.borderColor='var(--rd)';
+              }else{
+                inp.placeholder='備考（色・個数など）';
+                inp.style.borderColor='var(--br2)';
+              }
+            }
+          };
+        });
         document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
         document.getElementById('nameDialogOk').onclick=async()=>{
           const name=document.getElementById('nameDialogInput').value.trim();
@@ -2426,8 +2486,11 @@ function openDeclarationModal(costumeId){
           }else{
             toast(`「${name}」はすでにマスタにあります`);
           }
+          const activeType=nameWrap.querySelector('.use-type-btn.on')?.dataset.type||'';
+          const bikouText=document.getElementById('colorDialogInput')?.value.trim()||'';
+          const bikou=[activeType,bikouText].filter(Boolean).join('：');
           nameWrap.remove();
-          doDecl(name);
+          doDecl(name,bikou);
         };
         document.getElementById('nameDialogInput').onkeydown=e=>{if(e.key==='Enter')document.getElementById('nameDialogOk').click();};
       };
