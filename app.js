@@ -2427,12 +2427,15 @@ function openDeclarationModal(costumeId){
               </div>
             </div>`:'' }
             <input id="nameDialogInput" placeholder="または直接入力…" style="width:100%;height:40px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:10px">
-            <div style="font-size:11px;color:var(--tx2);margin-bottom:6px"><i class="ti ti-package" style="font-size:11px;color:var(--gr)"></i> 使用方法（任意）</div>
+            <div style="font-size:11px;color:var(--tx2);margin-bottom:6px"><i class="ti ti-package" style="font-size:11px;color:var(--gr)"></i> 使用方法</div>
             <div style="display:flex;gap:6px;margin-bottom:8px">
               <button class="use-type-btn on" data-type="全部" style="flex:1;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--gr);background:var(--gr);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">全部使用</button>
               <button class="use-type-btn" data-type="一部" style="flex:1;height:32px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg3);color:var(--tx2);font-size:12px;cursor:pointer;font-family:inherit">一部使用</button>
             </div>
-            <input id="colorDialogInput" placeholder="備考（色・個数など）" style="width:100%;height:36px;border:0.5px solid var(--br2);border-radius:var(--r-sm);padding:0 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none;margin-bottom:12px">
+            <div id="colorDialogWrap" style="display:none;margin-bottom:12px">
+              <div style="font-size:11px;color:var(--rd);margin-bottom:4px">何を何個使うか入力してください（必須）</div>
+              <input id="colorDialogInput" placeholder="例：オレンジ2個・青1個" style="width:100%;height:36px;border:1px solid var(--rd);border-radius:var(--r-sm);padding:0 10px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--tx);outline:none">
+            </div>
             <div style="display:flex;gap:8px">
               <button id="nameDialogCancel" style="flex:1;height:38px;border-radius:var(--r-sm);border:0.5px solid var(--br2);background:var(--bg);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit">キャンセル</button>
               <button id="nameDialogOk" style="flex:2;height:38px;border-radius:var(--r-sm);border:none;background:var(--gr);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">表明する</button>
@@ -2452,16 +2455,8 @@ function openDeclarationModal(costumeId){
           btn2.onclick=()=>{
             nameWrap.querySelectorAll('.use-type-btn').forEach(b=>{b.style.background='var(--bg3)';b.style.color='var(--tx2)';b.style.borderColor='var(--br2)';b.classList.remove('on');});
             btn2.style.background='var(--gr)';btn2.style.color='#fff';btn2.style.borderColor='var(--gr)';btn2.classList.add('on');
-            const inp=document.getElementById('colorDialogInput');
-            if(inp){
-              if(btn2.dataset.type==='一部'){
-                inp.placeholder='何を何個か入力（例：オレンジ2個・青1個）';
-                inp.style.borderColor='var(--rd)';
-              }else{
-                inp.placeholder='備考（色・個数など）';
-                inp.style.borderColor='var(--br2)';
-              }
-            }
+            const wrap=document.getElementById('colorDialogWrap');
+            if(wrap) wrap.style.display=btn2.dataset.type==='一部'?'block':'none';
           };
         });
         document.getElementById('nameDialogCancel').onclick=()=>nameWrap.remove();
@@ -2488,6 +2483,11 @@ function openDeclarationModal(costumeId){
           }
           const activeType=nameWrap.querySelector('.use-type-btn.on')?.dataset.type||'';
           const bikouText=document.getElementById('colorDialogInput')?.value.trim()||'';
+          if(activeType==='一部'&&!bikouText){
+            toast('一部使用の場合は何を何個使うか入力してください');
+            okBtn.disabled=false;okBtn.textContent='表明する';
+            return;
+          }
           const bikou=[activeType,bikouText].filter(Boolean).join('：');
           nameWrap.remove();
           doDecl(name,bikou);
