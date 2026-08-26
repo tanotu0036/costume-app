@@ -2077,7 +2077,7 @@ function renderScheduleTable(year){
           labels.push('衣装が競合');
           if(isHap) labels.push('発表会日が重複');
           if(isReh) labels.push('リハーサル日が重複');
-          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>（${labels.join('・')}）：${sortedDecls.map(d=>`${d.園}${S.happiouDates[d.園]?'（'+formatDate(S.happiouDates[d.園])+'）':''}`).join('・')}`;
+          return `<strong>${c?.衣装ID||''} ${c?.衣装名||''}</strong>（${labels.join('・')}）：${sortedDecls.map(d=>d.園).join('・')}`;
         }).join('<br>')}
       </div>
     </div>`:'' ;
