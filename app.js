@@ -1312,6 +1312,13 @@ function renderSettings(body){
         </div>
       </div>
 
+      <div class="section"><div class="settings-section-title"><i class="ti ti-tools"></i>データ修復</div></div>
+      <div class="card" style="padding:12px">
+        <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">IDが壊れた衣装データを自動検出・修復します</div>
+        <button class="btn-primary" id="btnRepairData" style="background:var(--gd)"><i class="ti ti-tools"></i>データを修復する</button>
+        <div id="repairStatus" style="margin-top:8px;font-size:12px;color:var(--tx2)"></div>
+      </div>
+
       <div class="section"><div class="settings-section-title"><i class="ti ti-restore"></i>削除済み衣装</div></div>
       <div class="card" style="padding:12px">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:10px">削除した衣装を復活させることができます</div>
@@ -1425,6 +1432,7 @@ function renderSettings(body){
     }catch(e){toast('保存失敗: '+e.message);}
   };
   document.getElementById('btnShowDeleted').onclick=openDeletedCostumesModal;
+  document.getElementById('btnRepairData').onclick=openRepairModal;
 
   // リハーサル日の追加・削除
   const saveRehearsalDates=async(g,dates)=>{
@@ -1594,6 +1602,49 @@ function renderSettings(body){
 // ============================================================
 //  削除済み衣装の復活
 // ============================================================
+async function openRepairModal(){
+  const ov=document.createElement('div');
+  ov.id='repairPage';
+  ov.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column';
+  ov.innerHTML=`
+    <div class="hdr">
+      <button class="hdr-back" id="rpBack"><i class="ti ti-arrow-left"></i></button>
+      <span class="hdr-title"><i class="ti ti-tools"></i> データ修復</span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:12px">
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">IDが壊れた衣装データを検出して修復します。</div>
+      <div id="rpBody">
+        <div class="loading"><i class="ti ti-loader-2"></i>検索中...</div>
+      </div>
+    </div>`;
+  App.appendChild(ov);
+  document.getElementById('rpBack').onclick=()=>ov.remove();
+
+  try{
+    const result=await api('repairIds');
+    const body=document.getElementById('rpBody');
+    if(!result||result.fixed===0){
+      body.innerHTML=`<div class="empty"><i class="ti ti-circle-check" style="font-size:36px;color:var(--gr)"></i><p>壊れたデータは見つかりませんでした</p></div>`;
+      return;
+    }
+    body.innerHTML=`
+      <div style="background:var(--gr-l);border:0.5px solid var(--gr-b);border-radius:var(--r);padding:12px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--gr2);margin-bottom:6px"><i class="ti ti-circle-check"></i> ${result.fixed}件のデータを修復しました</div>
+        <div style="font-size:11px;color:var(--tx2)">ページを再読み込みして確認してください</div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:8px">修復した衣装：</div>
+      ${result.details.map(d=>`
+        <div style="padding:8px 10px;background:var(--bg2);border:0.5px solid var(--br);border-radius:var(--r-sm);margin-bottom:6px;font-size:12px">
+          <div style="font-weight:700">${esc(d.衣装ID)} ${esc(d.衣装名)}</div>
+          <div style="color:var(--tx3);font-size:10px;margin-top:2px">ID修復：${esc(d.oldId)} → ${esc(d.newId)}</div>
+          <div style="color:var(--tx3);font-size:10px">写真 ${d.photos}件も更新</div>
+        </div>`).join('')}
+      <button class="btn-primary" style="margin-top:12px" onclick="location.reload()"><i class="ti ti-refresh"></i>再読み込み</button>`;
+  }catch(e){
+    document.getElementById('rpBody').innerHTML=`<div class="empty"><p>修復失敗: ${esc(e.message)}</p></div>`;
+  }
+}
+
 async function openDeletedCostumesModal(){
   // モーダルを使わず専用ページとして表示
   const ov=document.createElement('div');
