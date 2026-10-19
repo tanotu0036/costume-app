@@ -19,7 +19,7 @@
 | `index.html` | HTML + CSS（スタイル定義すべて含む） |
 | `app.js` | フロントエンドロジック（2500行超） |
 | `api.js` | GAS APIクライアント（`API_URL`, `api()`, `apiPost()`, `CostumeAPI` 等） |
-| `Code.gs` | GASバックエンド（Google Apps Scriptにコピペして使う）※リポジトリには未収録 |
+| `Code.gs` | GASバックエンド（Google Apps Scriptにコピペして使う。GitHubに置くだけでは反映されない） |
 
 > `index.html` が `api.js` → `app.js` の順にキャッシュバスター付きで読み込む
 
